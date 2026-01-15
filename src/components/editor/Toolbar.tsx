@@ -87,16 +87,9 @@ export function Toolbar() {
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <path
-                  d="M2 5L10 10L18 5"
+                  d="M3 6L10 12L17 6"
                   className="stroke-background"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M2 5V15H18V5"
-                  className="stroke-background"
-                  strokeWidth="2"
+                  strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
