@@ -28,6 +28,7 @@ import {
   FileCode,
   LayoutGrid,
   Mail,
+  PenLine,
 } from 'lucide-react';
 import { useEditorStore, useTemporalStore } from '@/stores/editor';
 import { useUIStore } from '@/stores/ui';
@@ -38,12 +39,10 @@ export function Toolbar() {
   const document = useEditorStore((s) => s.document);
   const { undo, redo, pastStates, futureStates } = useTemporalStore().getState();
   const {
+    editorMode,
     previewMode,
-    showCode,
-    showPreview,
+    setEditorMode,
     setPreviewMode,
-    setShowCode,
-    setShowPreview,
   } = useUIStore();
 
   const canUndo = pastStates.length > 0;
@@ -77,21 +76,6 @@ export function Toolbar() {
     await navigator.clipboard.writeText(html);
   }, [document]);
 
-  const handleViewCanvas = useCallback(() => {
-    setShowCode(false);
-    setShowPreview(false);
-  }, [setShowCode, setShowPreview]);
-
-  const handleViewPreview = useCallback(() => {
-    setShowCode(false);
-    setShowPreview(true);
-  }, [setShowCode, setShowPreview]);
-
-  const handleViewCode = useCallback(() => {
-    setShowCode(true);
-    setShowPreview(false);
-  }, [setShowCode, setShowPreview]);
-
   return (
     <TooltipProvider delayDuration={300}>
       <div className="h-14 border-b border-border bg-background px-4 flex items-center justify-between">
@@ -110,53 +94,68 @@ export function Toolbar() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant={!showCode && !showPreview ? 'secondary' : 'ghost'}
+                variant={editorMode === 'canvas' ? 'secondary' : 'ghost'}
                 size="sm"
                 className="h-8 px-3"
-                onClick={handleViewCanvas}
+                onClick={() => setEditorMode('canvas')}
               >
                 <LayoutGrid className="w-4 h-4 mr-2" />
                 Canvas
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Edit Mode</TooltipContent>
+            <TooltipContent>Visual block editor</TooltipContent>
           </Tooltip>
 
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant={showPreview && !showCode ? 'secondary' : 'ghost'}
+                variant={editorMode === 'edit' ? 'secondary' : 'ghost'}
                 size="sm"
                 className="h-8 px-3"
-                onClick={handleViewPreview}
+                onClick={() => setEditorMode('edit')}
+              >
+                <PenLine className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Text editing mode</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={editorMode === 'preview' ? 'secondary' : 'ghost'}
+                size="sm"
+                className="h-8 px-3"
+                onClick={() => setEditorMode('preview')}
               >
                 <Eye className="w-4 h-4 mr-2" />
                 Preview
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Preview Mode</TooltipContent>
+            <TooltipContent>Preview rendered email</TooltipContent>
           </Tooltip>
 
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant={showCode ? 'secondary' : 'ghost'}
+                variant={editorMode === 'code' ? 'secondary' : 'ghost'}
                 size="sm"
                 className="h-8 px-3"
-                onClick={handleViewCode}
+                onClick={() => setEditorMode('code')}
               >
                 <Code2 className="w-4 h-4 mr-2" />
                 Code
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Code Editor</TooltipContent>
+            <TooltipContent>MJML source code</TooltipContent>
           </Tooltip>
         </div>
 
         {/* Right Section - Actions */}
         <div className="flex items-center gap-2">
           {/* Device Toggle (only in preview) */}
-          {showPreview && !showCode && (
+          {editorMode === 'preview' && (
             <>
               <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
                 <Tooltip>

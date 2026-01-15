@@ -5,6 +5,7 @@ import { useState, useCallback } from 'react';
 import { Toolbar } from './Toolbar';
 import { Sidebar } from './Sidebar';
 import { Canvas } from './Canvas';
+import { EditMode } from './EditMode';
 import { Properties } from './Properties';
 import { Preview } from '../preview/Preview';
 import { CodeEditor } from './CodeEditor';
@@ -17,7 +18,7 @@ import * as Icons from 'lucide-react';
 
 export function Editor() {
   const { addNode, moveNode, setSelectedId } = useEditorStore();
-  const { showCode, showPreview, setIsDragging, isDragging } = useUIStore();
+  const { editorMode, setIsDragging, isDragging } = useUIStore();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeType, setActiveType] = useState<MJMLComponentType | null>(null);
 
@@ -103,26 +104,27 @@ export function Editor() {
         
         {/* Main Content Area - Using Flexbox */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Left Panel - Sidebar */}
-          <div className="w-[280px] min-w-[280px] flex-shrink-0 border-r border-border">
-            <Sidebar />
-          </div>
+          {/* Left Panel - Sidebar (hidden in edit mode) */}
+          {editorMode === 'canvas' && (
+            <div className="w-[280px] min-w-[280px] flex-shrink-0 border-r border-border">
+              <Sidebar />
+            </div>
+          )}
 
-          {/* Center Panel - Canvas / Code / Preview */}
+          {/* Center Panel - Canvas / Edit / Code / Preview */}
           <div className="flex-1 min-w-0 overflow-hidden">
-            {showCode ? (
-              <CodeEditor />
-            ) : showPreview ? (
-              <Preview />
-            ) : (
-              <Canvas />
-            )}
+            {editorMode === 'code' && <CodeEditor />}
+            {editorMode === 'preview' && <Preview />}
+            {editorMode === 'edit' && <EditMode />}
+            {editorMode === 'canvas' && <Canvas />}
           </div>
 
-          {/* Right Panel - Properties */}
-          <div className="w-[300px] min-w-[300px] flex-shrink-0 border-l border-border">
-            <Properties />
-          </div>
+          {/* Right Panel - Properties (hidden in edit, code, preview mode) */}
+          {editorMode === 'canvas' && (
+            <div className="w-[300px] min-w-[300px] flex-shrink-0 border-l border-border">
+              <Properties />
+            </div>
+          )}
         </div>
       </div>
 
