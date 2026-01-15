@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useCallback, useState, useRef, useEffect } from 'react';
-import { useEditorStore } from '@/stores/editor';
-import { EditorNode, MJMLComponentType } from '@/types/editor';
-import { componentDefinitions, createNode } from '@/lib/mjml/schema';
-import { cn } from '@/lib/utils';
+import { useCallback, useState, useRef, useEffect } from "react";
+import { useEditorStore } from "@/stores/editor";
+import { EditorNode, MJMLComponentType } from "@/types/editor";
+import { componentDefinitions, createNode } from "@/lib/mjml/schema";
+import { cn } from "@/lib/utils";
 import {
   Bold,
   Italic,
@@ -20,13 +20,13 @@ import {
   Plus,
   GripVertical,
   Trash2,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
+} from "@/components/ui/popover";
 
 export function EditMode() {
   const document = useEditorStore((s) => s.document);
@@ -84,7 +84,13 @@ function EditSection({ node }: { node: EditorNode }) {
   );
 }
 
-function EditColumn({ node, parentId }: { node: EditorNode; parentId: string }) {
+function EditColumn({
+  node,
+  parentId,
+}: {
+  node: EditorNode;
+  parentId: string;
+}) {
   return (
     <div className="space-y-1">
       {node.children?.map((child) => (
@@ -107,9 +113,9 @@ function EditBlock({ node, parentId }: { node: EditorNode; parentId: string }) {
   return (
     <div
       className={cn(
-        'group relative rounded-lg transition-all duration-150',
-        isHovered && 'bg-gray-50',
-        isSelected && 'bg-blue-50/50 ring-2 ring-blue-200'
+        "group relative rounded-lg transition-all duration-150",
+        isHovered && "bg-gray-50",
+        isSelected && "bg-blue-50/50 ring-2 ring-blue-200"
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -118,8 +124,8 @@ function EditBlock({ node, parentId }: { node: EditorNode; parentId: string }) {
       {/* Block Controls */}
       <div
         className={cn(
-          'absolute -left-10 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 transition-opacity',
-          (isHovered || isSelected) && 'opacity-100'
+          "absolute -left-10 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 transition-opacity",
+          (isHovered || isSelected) && "opacity-100"
         )}
       >
         <button
@@ -142,11 +148,11 @@ function EditBlock({ node, parentId }: { node: EditorNode; parentId: string }) {
 
       {/* Block Content */}
       <div className="py-1">
-        {node.type === 'mj-text' && <EditableText node={node} />}
-        {node.type === 'mj-image' && <EditableImage node={node} />}
-        {node.type === 'mj-button' && <EditableButton node={node} />}
-        {node.type === 'mj-divider' && <EditableDivider node={node} />}
-        {node.type === 'mj-spacer' && <EditableSpacer node={node} />}
+        {node.type === "mj-text" && <EditableText node={node} />}
+        {node.type === "mj-image" && <EditableImage node={node} />}
+        {node.type === "mj-button" && <EditableButton node={node} />}
+        {node.type === "mj-divider" && <EditableDivider node={node} />}
+        {node.type === "mj-spacer" && <EditableSpacer node={node} />}
       </div>
     </div>
   );
@@ -176,12 +182,12 @@ function EditableText({ node }: { node: EditorNode }) {
   };
 
   const style = {
-    fontSize: node.props['font-size'] as string || '16px',
-    fontWeight: node.props['font-weight'] as string,
-    fontFamily: node.props['font-family'] as string,
-    color: node.props['color'] as string || '#333',
-    lineHeight: node.props['line-height'] as string || '1.6',
-    textAlign: node.props['align'] as 'left' | 'center' | 'right',
+    fontSize: (node.props["font-size"] as string) || "16px",
+    fontWeight: node.props["font-weight"] as string,
+    fontFamily: node.props["font-family"] as string,
+    color: (node.props["color"] as string) || "#333",
+    lineHeight: (node.props["line-height"] as string) || "1.6",
+    textAlign: node.props["align"] as "left" | "center" | "right",
   };
 
   return (
@@ -190,21 +196,21 @@ function EditableText({ node }: { node: EditorNode }) {
       {(showToolbar || isSelected) && (
         <div className="absolute -top-10 left-0 z-50 flex items-center gap-1 p-1 bg-white rounded-lg shadow-lg border border-gray-200">
           <button
-            onClick={() => execCommand('bold')}
+            onClick={() => execCommand("bold")}
             className="p-1.5 rounded hover:bg-gray-100"
             title="Bold"
           >
             <Bold className="w-4 h-4" />
           </button>
           <button
-            onClick={() => execCommand('italic')}
+            onClick={() => execCommand("italic")}
             className="p-1.5 rounded hover:bg-gray-100"
             title="Italic"
           >
             <Italic className="w-4 h-4" />
           </button>
           <button
-            onClick={() => execCommand('underline')}
+            onClick={() => execCommand("underline")}
             className="p-1.5 rounded hover:bg-gray-100"
             title="Underline"
           >
@@ -212,22 +218,31 @@ function EditableText({ node }: { node: EditorNode }) {
           </button>
           <div className="w-px h-5 bg-gray-200 mx-1" />
           <button
-            onClick={() => updateNodeProps(node.id, { align: 'left' })}
-            className={cn('p-1.5 rounded hover:bg-gray-100', node.props['align'] === 'left' && 'bg-gray-100')}
+            onClick={() => updateNodeProps(node.id, { align: "left" })}
+            className={cn(
+              "p-1.5 rounded hover:bg-gray-100",
+              node.props["align"] === "left" && "bg-gray-100"
+            )}
             title="Align Left"
           >
             <AlignLeft className="w-4 h-4" />
           </button>
           <button
-            onClick={() => updateNodeProps(node.id, { align: 'center' })}
-            className={cn('p-1.5 rounded hover:bg-gray-100', node.props['align'] === 'center' && 'bg-gray-100')}
+            onClick={() => updateNodeProps(node.id, { align: "center" })}
+            className={cn(
+              "p-1.5 rounded hover:bg-gray-100",
+              node.props["align"] === "center" && "bg-gray-100"
+            )}
             title="Align Center"
           >
             <AlignCenter className="w-4 h-4" />
           </button>
           <button
-            onClick={() => updateNodeProps(node.id, { align: 'right' })}
-            className={cn('p-1.5 rounded hover:bg-gray-100', node.props['align'] === 'right' && 'bg-gray-100')}
+            onClick={() => updateNodeProps(node.id, { align: "right" })}
+            className={cn(
+              "p-1.5 rounded hover:bg-gray-100",
+              node.props["align"] === "right" && "bg-gray-100"
+            )}
             title="Align Right"
           >
             <AlignRight className="w-4 h-4" />
@@ -235,8 +250,8 @@ function EditableText({ node }: { node: EditorNode }) {
           <div className="w-px h-5 bg-gray-200 mx-1" />
           <button
             onClick={() => {
-              const url = prompt('Enter URL:');
-              if (url) execCommand('createLink', url);
+              const url = prompt("Enter URL:");
+              if (url) execCommand("createLink", url);
             }}
             className="p-1.5 rounded hover:bg-gray-100"
             title="Add Link"
@@ -255,7 +270,7 @@ function EditableText({ node }: { node: EditorNode }) {
         onBlur={handleBlur}
         className="outline-none min-h-[1.6em] px-2 py-1"
         style={style}
-        dangerouslySetInnerHTML={{ __html: node.content || '' }}
+        dangerouslySetInnerHTML={{ __html: node.content || "" }}
       />
     </div>
   );
@@ -265,27 +280,27 @@ function EditableImage({ node }: { node: EditorNode }) {
   const { updateNodeProps } = useEditorStore();
   const [isEditing, setIsEditing] = useState(false);
 
-  const src = node.props['src'] as string;
-  const alt = node.props['alt'] as string || '';
-  const align = node.props['align'] as string || 'center';
+  const src = node.props["src"] as string;
+  const alt = (node.props["alt"] as string) || "";
+  const align = (node.props["align"] as string) || "center";
 
   return (
     <div
       className="py-2"
-      style={{ textAlign: align as 'left' | 'center' | 'right' }}
+      style={{ textAlign: align as "left" | "center" | "right" }}
     >
       {src ? (
         <img
           src={src}
           alt={alt}
           className="max-w-full h-auto rounded-lg cursor-pointer hover:ring-2 hover:ring-blue-200"
-          style={{ display: 'inline-block' }}
+          style={{ display: "inline-block" }}
           onClick={() => setIsEditing(true)}
         />
       ) : (
         <button
           onClick={() => {
-            const url = prompt('Enter image URL:');
+            const url = prompt("Enter image URL:");
             if (url) updateNodeProps(node.id, { src: url });
           }}
           className="w-full py-8 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors"
@@ -303,19 +318,24 @@ function EditableButton({ node }: { node: EditorNode }) {
   const [showToolbar, setShowToolbar] = useState(false);
   const isSelected = selectedId === node.id;
 
-  const bgColor = node.props['background-color'] as string || '#2563eb';
-  const textColor = node.props['color'] as string || '#ffffff';
-  const borderRadius = node.props['border-radius'] as string || '6px';
-  const align = node.props['align'] as string || 'center';
+  const bgColor = (node.props["background-color"] as string) || "#2563eb";
+  const textColor = (node.props["color"] as string) || "#ffffff";
+  const borderRadius = (node.props["border-radius"] as string) || "6px";
+  const align = (node.props["align"] as string) || "center";
 
   return (
-    <div className="relative py-2" style={{ textAlign: align as 'left' | 'center' | 'right' }}>
+    <div
+      className="relative py-2"
+      style={{ textAlign: align as "left" | "center" | "right" }}
+    >
       {/* Button Toolbar */}
       {(showToolbar || isSelected) && (
         <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 p-1 bg-white rounded-lg shadow-lg border border-gray-200">
           <select
             value={borderRadius}
-            onChange={(e) => updateNodeProps(node.id, { 'border-radius': e.target.value })}
+            onChange={(e) =>
+              updateNodeProps(node.id, { "border-radius": e.target.value })
+            }
             className="text-sm px-2 py-1 rounded border-0 bg-gray-50"
           >
             <option value="0">Square</option>
@@ -326,21 +346,28 @@ function EditableButton({ node }: { node: EditorNode }) {
           <input
             type="color"
             value={bgColor}
-            onChange={(e) => updateNodeProps(node.id, { 'background-color': e.target.value })}
+            onChange={(e) =>
+              updateNodeProps(node.id, { "background-color": e.target.value })
+            }
             className="w-6 h-6 rounded cursor-pointer"
             title="Background Color"
           />
           <input
             type="color"
             value={textColor}
-            onChange={(e) => updateNodeProps(node.id, { color: e.target.value })}
+            onChange={(e) =>
+              updateNodeProps(node.id, { color: e.target.value })
+            }
             className="w-6 h-6 rounded cursor-pointer"
             title="Text Color"
           />
           <div className="w-px h-5 bg-gray-200 mx-1" />
           <button
             onClick={() => {
-              const url = prompt('Enter button URL:', node.props['href'] as string || '');
+              const url = prompt(
+                "Enter button URL:",
+                (node.props["href"] as string) || ""
+              );
               if (url !== null) updateNodeProps(node.id, { href: url });
             }}
             className="p-1.5 rounded hover:bg-gray-100"
@@ -357,7 +384,7 @@ function EditableButton({ node }: { node: EditorNode }) {
         onFocus={() => setShowToolbar(true)}
         onBlur={(e) => {
           setTimeout(() => setShowToolbar(false), 200);
-          updateNodeContent(node.id, e.currentTarget.textContent || '');
+          updateNodeContent(node.id, e.currentTarget.textContent || "");
         }}
         className="inline-block px-6 py-3 font-medium outline-none cursor-text"
         style={{
@@ -366,15 +393,15 @@ function EditableButton({ node }: { node: EditorNode }) {
           borderRadius,
         }}
       >
-        {node.content || 'Button'}
+        {node.content || "Button"}
       </span>
     </div>
   );
 }
 
 function EditableDivider({ node }: { node: EditorNode }) {
-  const borderColor = node.props['border-color'] as string || '#e2e8f0';
-  const borderWidth = node.props['border-width'] as string || '1px';
+  const borderColor = (node.props["border-color"] as string) || "#e2e8f0";
+  const borderWidth = (node.props["border-width"] as string) || "1px";
 
   return (
     <div className="py-4">
@@ -382,7 +409,7 @@ function EditableDivider({ node }: { node: EditorNode }) {
         style={{
           borderColor,
           borderWidth,
-          borderStyle: 'solid',
+          borderStyle: "solid",
         }}
       />
     </div>
@@ -390,7 +417,7 @@ function EditableDivider({ node }: { node: EditorNode }) {
 }
 
 function EditableSpacer({ node }: { node: EditorNode }) {
-  const height = node.props['height'] as string || '30px';
+  const height = (node.props["height"] as string) || "30px";
 
   return (
     <div
@@ -412,12 +439,12 @@ function AddBlockButton({ parentId }: { parentId: string }) {
     if (!parent) return parentId;
 
     // If parent is body, we need to add to a column inside a section
-    if (parent.type === 'mj-body') {
+    if (parent.type === "mj-body") {
       // Find first column in first section
       const section = parent.children?.[0];
-      if (section?.type === 'mj-section') {
+      if (section?.type === "mj-section") {
         const column = section.children?.[0];
-        if (column?.type === 'mj-column') {
+        if (column?.type === "mj-column") {
           return column.id;
         }
       }
@@ -432,10 +459,10 @@ function AddBlockButton({ parentId }: { parentId: string }) {
   };
 
   const blockTypes = [
-    { type: 'mj-text' as const, icon: Type, label: 'Text' },
-    { type: 'mj-image' as const, icon: Image, label: 'Image' },
-    { type: 'mj-button' as const, icon: MousePointerClick, label: 'Button' },
-    { type: 'mj-divider' as const, icon: Minus, label: 'Divider' },
+    { type: "mj-text" as const, icon: Type, label: "Text" },
+    { type: "mj-image" as const, icon: Image, label: "Image" },
+    { type: "mj-button" as const, icon: MousePointerClick, label: "Button" },
+    { type: "mj-divider" as const, icon: Minus, label: "Divider" },
   ];
 
   return (
@@ -443,10 +470,10 @@ function AddBlockButton({ parentId }: { parentId: string }) {
       <PopoverTrigger asChild>
         <button
           className={cn(
-            'w-full py-2 flex items-center justify-center gap-2 text-gray-400 rounded-lg transition-all',
-            'hover:bg-gray-50 hover:text-gray-600',
-            'opacity-0 hover:opacity-100 focus:opacity-100',
-            isOpen && 'opacity-100 bg-gray-50'
+            "w-full py-2 flex items-center justify-center gap-2 text-gray-400 rounded-lg transition-all",
+            "hover:bg-gray-50 hover:text-gray-600",
+            "opacity-0 hover:opacity-100 focus:opacity-100",
+            isOpen && "opacity-100 bg-gray-50"
           )}
         >
           <Plus className="w-4 h-4" />

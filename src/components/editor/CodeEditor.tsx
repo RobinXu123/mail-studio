@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useCallback, useRef } from 'react';
-import Editor, { OnMount, BeforeMount } from '@monaco-editor/react';
-import type { editor } from 'monaco-editor';
-import { useEditorStore } from '@/stores/editor';
-import { generateMjml, parseMjmlToNode } from '@/lib/mjml/compiler';
-import { Button } from '@/components/ui/button';
-import { RefreshCw, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { useEffect, useState, useCallback, useRef } from "react";
+import Editor, { OnMount, BeforeMount } from "@monaco-editor/react";
+import type { editor } from "monaco-editor";
+import { useEditorStore } from "@/stores/editor";
+import { generateMjml, parseMjmlToNode } from "@/lib/mjml/compiler";
+import { Button } from "@/components/ui/button";
+import { RefreshCw, Check, AlertCircle, Loader2 } from "lucide-react";
 
 export function CodeEditor() {
   const document = useEditorStore((s) => s.document);
   const setDocument = useEditorStore((s) => s.setDocument);
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState("");
   const [isDirty, setIsDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
@@ -23,6 +23,26 @@ export function CodeEditor() {
       setCode(mjml);
     }
   }, [document, isDirty]);
+
+  // Auto-sync with debounce for live preview
+  useEffect(() => {
+    if (!isDirty) return;
+
+    const timer = setTimeout(() => {
+      try {
+        const node = parseMjmlToNode(code);
+        if (node) {
+          setDocument(node);
+          setError(null);
+          // Keep isDirty true to show the modified indicator
+        }
+      } catch (err) {
+        setError((err as Error).message);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [code, isDirty, setDocument]);
 
   const handleChange = useCallback((value: string | undefined) => {
     if (value !== undefined) {
@@ -40,7 +60,7 @@ export function CodeEditor() {
         setIsDirty(false);
         setError(null);
       } else {
-        setError('Failed to parse MJML. Please check the syntax.');
+        setError("Failed to parse MJML. Please check the syntax.");
       }
     } catch (err) {
       setError((err as Error).message);
@@ -62,82 +82,86 @@ export function CodeEditor() {
 
   const handleBeforeMount: BeforeMount = useCallback((monaco) => {
     // Register MJML as XML-like language
-    monaco.languages.register({ id: 'mjml' });
-    monaco.languages.setLanguageConfiguration('mjml', {
-      brackets: [['<', '>'], ['{', '}'], ['(', ')']],
+    monaco.languages.register({ id: "mjml" });
+    monaco.languages.setLanguageConfiguration("mjml", {
+      brackets: [
+        ["<", ">"],
+        ["{", "}"],
+        ["(", ")"],
+      ],
       autoClosingPairs: [
-        { open: '<', close: '>' },
+        { open: "<", close: ">" },
         { open: '"', close: '"' },
         { open: "'", close: "'" },
       ],
       surroundingPairs: [
-        { open: '<', close: '>' },
+        { open: "<", close: ">" },
         { open: '"', close: '"' },
         { open: "'", close: "'" },
       ],
     });
 
     // Set token rules for MJML (XML-like)
-    monaco.languages.setMonarchTokensProvider('mjml', {
-      defaultToken: '',
-      tokenPostfix: '.mjml',
+    monaco.languages.setMonarchTokensProvider("mjml", {
+      defaultToken: "",
+      tokenPostfix: ".mjml",
       ignoreCase: true,
 
       brackets: [
-        { open: '<!--', close: '-->', token: 'comment.content.mjml' },
-        { open: '<![CDATA[', close: ']]>', token: 'cdata.content.mjml' },
-        { open: '<', close: '>', token: 'tag.mjml' },
+        { open: "<!--", close: "-->", token: "comment.content.mjml" },
+        { open: "<![CDATA[", close: "]]>", token: "cdata.content.mjml" },
+        { open: "<", close: ">", token: "tag.mjml" },
       ],
 
       tokenizer: {
         root: [
-          [/<!--/, 'comment.mjml', '@comment'],
-          [/<!\[CDATA\[/, 'cdata.mjml', '@cdata'],
-          [/<\?/, 'metatag.mjml', '@processingInstruction'],
-          [/<\/?mj-[\w-]+/, { token: 'tag.mjml', next: '@tag' }],
-          [/<\/?[\w-]+/, { token: 'tag.mjml', next: '@tag' }],
-          [/[^<]+/, ''],
+          [/<!--/, "comment.mjml", "@comment"],
+          [/<!\[CDATA\[/, "cdata.mjml", "@cdata"],
+          [/<\?/, "metatag.mjml", "@processingInstruction"],
+          [/<\/?mj-[\w-]+/, { token: "tag.mjml", next: "@tag" }],
+          [/<\/?[\w-]+/, { token: "tag.mjml", next: "@tag" }],
+          [/[^<]+/, ""],
         ],
         comment: [
-          [/-->/, 'comment.mjml', '@pop'],
-          [/[^-]+/, 'comment.content.mjml'],
-          [/./, 'comment.content.mjml'],
+          [/-->/, "comment.mjml", "@pop"],
+          [/[^-]+/, "comment.content.mjml"],
+          [/./, "comment.content.mjml"],
         ],
         cdata: [
-          [/\]\]>/, 'cdata.mjml', '@pop'],
-          [/[^\]]+/, 'cdata.content.mjml'],
-          [/./, 'cdata.content.mjml'],
+          [/\]\]>/, "cdata.mjml", "@pop"],
+          [/[^\]]+/, "cdata.content.mjml"],
+          [/./, "cdata.content.mjml"],
         ],
         processingInstruction: [
-          [/\?>/, 'metatag.mjml', '@pop'],
-          [/[^?]+/, 'metatag.content.mjml'],
-          [/./, 'metatag.content.mjml'],
+          [/\?>/, "metatag.mjml", "@pop"],
+          [/[^?]+/, "metatag.content.mjml"],
+          [/./, "metatag.content.mjml"],
         ],
         tag: [
-          [/[\w-]+/, 'attribute.name.mjml'],
-          [/=/, 'delimiter.mjml'],
-          [/"[^"]*"/, 'attribute.value.mjml'],
-          [/'[^']*'/, 'attribute.value.mjml'],
-          [/\/>/, 'tag.mjml', '@pop'],
-          [/>/, 'tag.mjml', '@pop'],
-          [/\s+/, ''],
+          [/[\w-]+/, "attribute.name.mjml"],
+          [/=/, "delimiter.mjml"],
+          [/"[^"]*"/, "attribute.value.mjml"],
+          [/'[^']*'/, "attribute.value.mjml"],
+          [/\/>/, "tag.mjml", "@pop"],
+          [/>/, "tag.mjml", "@pop"],
+          [/\s+/, ""],
         ],
       },
     });
 
     // Define theme for MJML
-    monaco.editor.defineTheme('mjml-dark', {
-      base: 'vs-dark',
+    monaco.editor.defineTheme("mjml-dark", {
+      base: "vs-dark",
       inherit: true,
       rules: [
-        { token: 'tag.mjml', foreground: '569CD6' },
-        { token: 'attribute.name.mjml', foreground: '9CDCFE' },
-        { token: 'attribute.value.mjml', foreground: 'CE9178' },
-        { token: 'comment.mjml', foreground: '6A9955' },
-        { token: 'comment.content.mjml', foreground: '6A9955' },
+        { token: "tag.mjml", foreground: "569CD6" },
+        { token: "attribute.name.mjml", foreground: "9CDCFE" },
+        { token: "attribute.value.mjml", foreground: "CE9178" },
+        { token: "comment.mjml", foreground: "6A9955" },
+        { token: "comment.content.mjml", foreground: "6A9955" },
       ],
       colors: {
-        'editor.background': '#1e1e1e',
+        "editor.background": "#1e1e1e",
       },
     });
   }, []);
@@ -206,17 +230,17 @@ export function CodeEditor() {
           options={{
             minimap: { enabled: false },
             fontSize: 14,
-            lineNumbers: 'on',
+            lineNumbers: "on",
             scrollBeyondLastLine: false,
-            wordWrap: 'on',
+            wordWrap: "on",
             tabSize: 2,
             insertSpaces: true,
             automaticLayout: true,
             formatOnPaste: true,
             formatOnType: true,
             folding: true,
-            foldingStrategy: 'indentation',
-            renderWhitespace: 'selection',
+            foldingStrategy: "indentation",
+            renderWhitespace: "selection",
             bracketPairColorization: { enabled: true },
             guides: {
               bracketPairs: true,
