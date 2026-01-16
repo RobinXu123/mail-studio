@@ -3,7 +3,7 @@
 import { useCallback, useState, useRef } from "react";
 import { useEditorStore } from "@/stores/editor";
 import { EditorNode, MJMLComponentType } from "@/types/editor";
-import { componentDefinitions, createNode, generateId } from "@/lib/mjml/schema";
+import { generateId } from "@/lib/mjml/schema";
 import { cn } from "@/lib/utils";
 import {
   Bold,
@@ -29,9 +29,19 @@ import {
   LayoutTemplate,
   Code,
   MoveVertical,
-  ExternalLink,
   ChevronRight,
+  Columns,
+  LayoutGrid,
+  Copy,
+  MoreHorizontal,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -41,6 +51,26 @@ import {
 
 export function EditMode() {
   const document = useEditorStore((s) => s.document);
+  const addChildNode = useEditorStore((s) => s.addChildNode);
+
+  const handleAddSection = (columnCount: number = 1) => {
+    // Create a section with specified number of columns
+    const columns: EditorNode[] = Array.from({ length: columnCount }, () => ({
+      id: generateId(),
+      type: "mj-column" as MJMLComponentType,
+      props: { width: `${Math.floor(100 / columnCount)}%` },
+      children: [],
+    }));
+
+    const newSection: EditorNode = {
+      id: generateId(),
+      type: "mj-section",
+      props: { padding: "20px 0" },
+      children: columns,
+    };
+
+    addChildNode(document.id, newSection);
+  };
 
   return (
     <div className="h-full bg-white overflow-auto">
@@ -74,108 +104,344 @@ export function EditMode() {
         </div>
 
         {/* Email Body */}
-        <div className="space-y-1">
+        <div className="space-y-2">
           {document.children?.map((section) => (
-            <EditSection key={section.id} node={section} />
+            <EditSectionContainer key={section.id} node={section} />
           ))}
-          <AddBlockButton parentId={document.id} />
+          
+          {/* Add Section Button */}
+          <AddSectionButton onAddSection={handleAddSection} />
         </div>
       </div>
     </div>
   );
 }
 
-function EditSection({ node }: { node: EditorNode }) {
-  // Handle different section types
+function AddSectionButton({ onAddSection }: { onAddSection: (columns: number) => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const layouts = [
+    { columns: 1, label: "1 Column", icon: "█" },
+    { columns: 2, label: "2 Columns", icon: "██" },
+    { columns: 3, label: "3 Columns", icon: "███" },
+    { columns: 4, label: "4 Columns", icon: "████" },
+  ];
+
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className={cn(
+            "w-full py-3 flex items-center justify-center gap-2 text-gray-400 rounded-lg transition-all border-2 border-dashed border-gray-200",
+            "hover:bg-gray-50 hover:text-gray-600 hover:border-gray-300",
+            isOpen && "bg-gray-50 border-gray-300"
+          )}
+        >
+          <Plus className="w-4 h-4" />
+          <span className="text-sm font-medium">Add Section</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-48 p-2" align="center">
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-gray-500 px-2 mb-2">Choose Layout</p>
+          {layouts.map(({ columns, label, icon }) => (
+            <button
+              key={columns}
+              onClick={() => {
+                onAddSection(columns);
+                setIsOpen(false);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <span className="text-xs font-mono text-gray-400 w-12">{icon}</span>
+              {label}
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function EditSectionContainer({ node }: { node: EditorNode }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const { selectedId, setSelectedId, removeNode, duplicateNode, addChildNode } = useEditorStore();
+  const isSelected = selectedId === node.id;
+
+  // Handle special section types
   if (node.type === "mj-hero") {
-    return <EditHero node={node} />;
+    return <EditHeroContainer node={node} />;
   }
 
   if (node.type === "mj-wrapper") {
     return (
-      <div className="space-y-1 p-2 bg-gray-50/50 rounded-lg border border-dashed border-gray-200">
-        {node.children?.map((section) => (
-          <EditSection key={section.id} node={section} />
-        ))}
+      <div
+        className={cn(
+          "relative group rounded-lg border-2 border-dashed transition-all",
+          isSelected ? "border-blue-400 bg-blue-50/30" : "border-gray-200",
+          isHovered && !isSelected && "border-gray-300 bg-gray-50/50"
+        )}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setSelectedId(node.id);
+        }}
+      >
+        <div className="absolute -top-3 left-3 px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-500 font-medium">
+          Wrapper
+        </div>
+        <div className="p-4 space-y-2">
+          {node.children?.map((section) => (
+            <EditSectionContainer key={section.id} node={section} />
+          ))}
+        </div>
       </div>
     );
   }
 
-  // Handle mj-group inside section
-  return (
-    <div className="space-y-1">
-      {node.children?.map((child) => {
-        if (child.type === "mj-group") {
-          return (
-            <div key={child.id} className="flex gap-2">
-              {child.children?.map((column) => (
-                <div key={column.id} className="flex-1">
-                  <EditColumn node={column} parentId={child.id} />
-                </div>
-              ))}
-            </div>
-          );
-        }
-        return (
-          <EditColumn key={child.id} node={child} parentId={node.id} />
-        );
-      })}
-    </div>
-  );
-}
+  const handleAddColumn = () => {
+    const newColumn: EditorNode = {
+      id: generateId(),
+      type: "mj-column",
+      props: {},
+      children: [],
+    };
+    addChildNode(node.id, newColumn);
+  };
 
-function EditHero({ node }: { node: EditorNode }) {
-  const { selectedId, setSelectedId } = useEditorStore();
-  const isSelected = selectedId === node.id;
-  const bgColor = (node.props["background-color"] as string) || "#1e293b";
-  const bgImage = node.props["background-url"] as string;
+  const bgColor = (node.props["background-color"] as string) || "transparent";
+  const columnCount = node.children?.length || 0;
 
   return (
     <div
       className={cn(
-        "relative rounded-lg overflow-hidden my-2 transition-all",
-        isSelected ? "ring-2 ring-blue-200" : ""
+        "relative group rounded-lg transition-all",
+        isSelected ? "ring-2 ring-blue-400 ring-offset-2" : "",
+        isHovered && !isSelected && "ring-2 ring-gray-200"
       )}
-      style={{
-        backgroundColor: bgColor,
-        backgroundImage: bgImage ? `url(${bgImage})` : undefined,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        minHeight: (node.props["height"] as string) || "300px",
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={(e) => {
+        e.stopPropagation();
+        setSelectedId(node.id);
       }}
-      onClick={() => setSelectedId(node.id)}
     >
-      <div className="absolute inset-0 flex flex-col items-center justify-center p-8">
+      {/* Section Controls */}
+      {(isHovered || isSelected) && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 px-2 py-1 bg-white rounded-lg shadow-sm border border-gray-200">
+          <span className="text-xs text-gray-500 font-medium mr-1">
+            <LayoutGrid className="w-3 h-3 inline mr-1" />
+            Section
+          </span>
+          <div className="w-px h-4 bg-gray-200" />
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAddColumn();
+            }}
+            className="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-700"
+            title="Add Column"
+          >
+            <Columns className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              duplicateNode(node.id);
+            }}
+            className="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-700"
+            title="Duplicate Section"
+          >
+            <Copy className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              removeNode(node.id);
+            }}
+            className="p-1 rounded hover:bg-red-100 text-gray-500 hover:text-red-500"
+            title="Delete Section"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Section Content */}
+      <div
+        className="min-h-[80px] rounded-lg overflow-hidden"
+        style={{ backgroundColor: bgColor !== "transparent" ? bgColor : undefined }}
+      >
+        {columnCount > 0 ? (
+          <div className={cn(
+            "grid gap-2 p-2",
+            columnCount === 1 && "grid-cols-1",
+            columnCount === 2 && "grid-cols-2",
+            columnCount === 3 && "grid-cols-3",
+            columnCount >= 4 && "grid-cols-4"
+          )}>
+            {node.children?.map((column) => (
+              <EditColumnContainer key={column.id} node={column} parentId={node.id} />
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-20 text-gray-400 text-sm">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAddColumn();
+              }}
+              className="flex items-center gap-1 hover:text-gray-600"
+            >
+              <Plus className="w-4 h-4" />
+              Add Column
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EditHeroContainer({ node }: { node: EditorNode }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const { selectedId, setSelectedId, removeNode, duplicateNode } = useEditorStore();
+  const isSelected = selectedId === node.id;
+  
+  const bgColor = (node.props["background-color"] as string) || "#1e293b";
+  const bgImage = node.props["background-url"] as string;
+  const height = (node.props["height"] as string) || "300px";
+
+  return (
+    <div
+      className={cn(
+        "relative group rounded-lg overflow-hidden transition-all",
+        isSelected ? "ring-2 ring-blue-400 ring-offset-2" : "",
+        isHovered && !isSelected && "ring-2 ring-gray-200"
+      )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={(e) => {
+        e.stopPropagation();
+        setSelectedId(node.id);
+      }}
+    >
+      {/* Hero Controls */}
+      {(isHovered || isSelected) && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 px-2 py-1 bg-black/60 rounded-lg">
+          <span className="text-xs text-white/80 font-medium mr-1">
+            <LayoutTemplate className="w-3 h-3 inline mr-1" />
+            Hero
+          </span>
+          <div className="w-px h-4 bg-white/30" />
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              duplicateNode(node.id);
+            }}
+            className="p-1 rounded hover:bg-white/20 text-white/80 hover:text-white"
+            title="Duplicate"
+          >
+            <Copy className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              removeNode(node.id);
+            }}
+            className="p-1 rounded hover:bg-red-500/50 text-white/80 hover:text-white"
+            title="Delete"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      <div
+        className="flex flex-col items-center justify-center p-8"
+        style={{
+          backgroundColor: bgColor,
+          backgroundImage: bgImage ? `url(${bgImage})` : undefined,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          minHeight: height,
+        }}
+      >
         {node.children?.map((child) => (
           <EditBlock key={child.id} node={child} parentId={node.id} />
         ))}
-      </div>
-
-      {/* Hero label */}
-      <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 rounded text-xs text-white flex items-center gap-1">
-        <LayoutTemplate className="w-3 h-3" />
-        Hero
+        <AddBlockButton parentId={node.id} />
       </div>
     </div>
   );
 }
 
-function EditColumn({
-  node,
-  parentId,
-}: {
-  node: EditorNode;
-  parentId: string;
-}) {
+function EditColumnContainer({ node, parentId }: { node: EditorNode; parentId: string }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const { selectedId, setSelectedId, removeNode } = useEditorStore();
+  const isSelected = selectedId === node.id;
+
+  const bgColor = (node.props["background-color"] as string) || "transparent";
+  const width = node.props["width"] as string;
+
   return (
-    <div className="space-y-1">
-      {node.children?.map((child) => (
-        <EditBlock key={child.id} node={child} parentId={node.id} />
-      ))}
-      <AddBlockButton parentId={node.id} />
+    <div
+      className={cn(
+        "relative group min-h-[60px] rounded-lg transition-all",
+        isSelected ? "ring-2 ring-blue-300 ring-inset" : "",
+        isHovered && !isSelected && "ring-1 ring-gray-200 ring-inset",
+        "bg-white/50"
+      )}
+      style={{ backgroundColor: bgColor !== "transparent" ? bgColor : undefined }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={(e) => {
+        e.stopPropagation();
+        setSelectedId(node.id);
+      }}
+    >
+      {/* Column Controls */}
+      {(isHovered || isSelected) && (
+        <div className="absolute -top-2 right-1 z-10">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="p-1 bg-white rounded shadow-sm border border-gray-200 hover:bg-gray-50">
+                <MoreHorizontal className="w-3 h-3 text-gray-500" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-32">
+              <DropdownMenuItem className="text-xs">
+                <Columns className="w-3 h-3 mr-2" />
+                {width || "Auto"} width
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-xs text-red-600"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeNode(node.id);
+                }}
+              >
+                <Trash2 className="w-3 h-3 mr-2" />
+                Delete Column
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+
+      {/* Column Content */}
+      <div className="p-2 space-y-1">
+        {node.children?.map((child) => (
+          <EditBlock key={child.id} node={child} parentId={node.id} />
+        ))}
+        <AddBlockButton parentId={node.id} />
+      </div>
     </div>
   );
 }
+
 
 function EditBlock({ node, parentId }: { node: EditorNode; parentId: string }) {
   const [isHovered, setIsHovered] = useState(false);
