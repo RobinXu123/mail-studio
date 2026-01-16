@@ -145,7 +145,7 @@ export function Canvas() {
           <div className="min-h-full flex items-start justify-center p-8">
             <div
               className={cn(
-                "bg-white shadow-lg rounded-lg overflow-hidden transition-shadow duration-200",
+                "bg-white shadow-lg rounded-lg transition-shadow duration-200",
                 isDragging && "shadow-xl ring-2 ring-blue-100"
               )}
               style={{ width: '600px', minHeight: '400px' }}
@@ -354,7 +354,7 @@ function CanvasNode({
 
       {/* Component Label - shown on hover or selection, hidden during drag of this element */}
       {(isSelected || isHovered) && !isDragging && (
-        <div className="absolute -top-7 left-0 z-20 flex items-center gap-1 animate-in fade-in slide-in-from-bottom-1 duration-150">
+        <div className="absolute -top-7 left-0 z-[9999] flex items-center gap-1 animate-in fade-in slide-in-from-bottom-1 duration-150">
           {/* Drag Handle */}
           <button
             {...attributes}
@@ -377,7 +377,7 @@ function CanvasNode({
 
       {/* Actions - only shown when selected and not dragging */}
       {isSelected && !isDragging && (
-        <div className="absolute -top-7 right-0 z-20 flex items-center gap-1 animate-in fade-in slide-in-from-bottom-1 duration-150">
+        <div className="absolute -top-7 right-0 z-[9999] flex items-center gap-1 animate-in fade-in slide-in-from-bottom-1 duration-150">
           <button
             onClick={handleDuplicate}
             className={cn(
