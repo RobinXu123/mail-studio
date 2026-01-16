@@ -104,13 +104,24 @@ export function Editor() {
     ] as React.ElementType;
 
     return (
-      <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg shadow-lg border border-border">
-        {IconComponent && (
-          <IconComponent className="w-4 h-4 text-muted-foreground" />
-        )}
-        <span className="text-sm font-medium">{def.name}</span>
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-lg shadow-2xl border-2 border-blue-400 transform -rotate-2 scale-105">
+        <div className="p-1.5 bg-blue-50 rounded-md">
+          {IconComponent && (
+            <IconComponent className="w-4 h-4 text-blue-600" />
+          )}
+        </div>
+        <span className="text-sm font-semibold text-gray-700">{def.name}</span>
+        <div className="ml-2 px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded font-medium">
+          Dragging
+        </div>
       </div>
     );
+  };
+
+  // Custom drop animation for smoother experience
+  const dropAnimation = {
+    duration: 200,
+    easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
   };
 
   return (
@@ -159,7 +170,7 @@ export function Editor() {
         </div>
       </div>
 
-      <DragOverlay dropAnimation={null}>
+      <DragOverlay dropAnimation={dropAnimation}>
         {isDragging && renderDragOverlay()}
       </DragOverlay>
     </DndContext>

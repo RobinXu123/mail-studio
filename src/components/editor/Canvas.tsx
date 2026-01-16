@@ -1,21 +1,103 @@
 'use client';
 
-import { useDroppable } from '@dnd-kit/core';
+import { useDroppable, useDndMonitor, DragOverEvent } from '@dnd-kit/core';
 import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEditorStore } from '@/stores/editor';
 import { useUIStore } from '@/stores/ui';
 import { EditorNode, MJMLComponentType } from '@/types/editor';
 import { componentDefinitions } from '@/lib/mjml/schema';
 import { cn } from '@/lib/utils';
-import { Trash2, Copy, GripVertical, ChevronRight } from 'lucide-react';
-import { useMemo, useCallback, useState } from 'react';
+import { Trash2, Copy, GripVertical, ChevronRight, Plus } from 'lucide-react';
+import { useMemo, useCallback, useState, createContext, useContext } from 'react';
+
+// Context for drag state
+interface DragState {
+  isDragging: boolean;
+  activeId: string | null;
+  overId: string | null;
+  overPosition: 'before' | 'after' | 'inside' | null;
+}
+
+const DragStateContext = createContext<DragState>({
+  isDragging: false,
+  activeId: null,
+  overId: null,
+  overPosition: null,
+});
 
 export function Canvas() {
   const document = useEditorStore((s) => s.document);
   const selectedId = useEditorStore((s) => s.selectedId);
-  const findNode = useEditorStore((s) => s.findNode);
+  const isDragging = useUIStore((s) => s.isDragging);
+  
+  // Track drag over state for showing indicators
+  const [dragState, setDragState] = useState<DragState>({
+    isDragging: false,
+    activeId: null,
+    overId: null,
+    overPosition: null,
+  });
+
+  // Monitor drag events
+  useDndMonitor({
+    onDragStart(event) {
+      setDragState({
+        isDragging: true,
+        activeId: event.active.id as string,
+        overId: null,
+        overPosition: null,
+      });
+    },
+    onDragOver(event: DragOverEvent) {
+      if (event.over) {
+        const overRect = event.over.rect;
+        const activeRect = event.active.rect.current.translated;
+        
+        let position: 'before' | 'after' | 'inside' = 'inside';
+        
+        if (overRect && activeRect) {
+          const overCenter = overRect.top + overRect.height / 2;
+          const activeCenter = activeRect.top + activeRect.height / 2;
+          
+          // Determine position based on mouse position relative to element center
+          if (activeCenter < overRect.top + overRect.height * 0.3) {
+            position = 'before';
+          } else if (activeCenter > overRect.top + overRect.height * 0.7) {
+            position = 'after';
+          }
+        }
+        
+        setDragState(prev => ({
+          ...prev,
+          overId: event.over?.id as string,
+          overPosition: position,
+        }));
+      } else {
+        setDragState(prev => ({
+          ...prev,
+          overId: null,
+          overPosition: null,
+        }));
+      }
+    },
+    onDragEnd() {
+      setDragState({
+        isDragging: false,
+        activeId: null,
+        overId: null,
+        overPosition: null,
+      });
+    },
+    onDragCancel() {
+      setDragState({
+        isDragging: false,
+        activeId: null,
+        overId: null,
+        overPosition: null,
+      });
+    },
+  });
 
   // Build breadcrumb path
   const breadcrumbPath = useMemo(() => {
@@ -43,32 +125,44 @@ export function Canvas() {
   }, [document, selectedId]);
 
   return (
-    <div className="h-full bg-muted/50 flex flex-col">
-      {/* Breadcrumb */}
-      {breadcrumbPath.length > 0 && (
-        <div className="px-4 py-2 bg-background border-b border-border flex items-center gap-1 text-sm overflow-x-auto">
-          <BreadcrumbItem node={document} isLast={breadcrumbPath.length === 1} />
-          {breadcrumbPath.slice(1).map((node, index) => (
-            <div key={node.id} className="flex items-center gap-1">
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-              <BreadcrumbItem node={node} isLast={index === breadcrumbPath.length - 2} />
-            </div>
-          ))}
-        </div>
-      )}
+    <DragStateContext.Provider value={dragState}>
+      <div className="h-full bg-muted/50 flex flex-col">
+        {/* Breadcrumb */}
+        {breadcrumbPath.length > 0 && (
+          <div className="px-4 py-2 bg-background border-b border-border flex items-center gap-1 text-sm overflow-x-auto">
+            <BreadcrumbItem node={document} isLast={breadcrumbPath.length === 1} />
+            {breadcrumbPath.slice(1).map((node, index) => (
+              <div key={node.id} className="flex items-center gap-1">
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                <BreadcrumbItem node={node} isLast={index === breadcrumbPath.length - 2} />
+              </div>
+            ))}
+          </div>
+        )}
 
-      {/* Canvas Area */}
-      <div className="flex-1 overflow-auto">
-        <div className="min-h-full flex items-start justify-center p-8">
-          <div
-            className="bg-white shadow-lg rounded-lg overflow-hidden"
-            style={{ width: '600px', minHeight: '400px' }}
-          >
-            <CanvasBody node={document} />
+        {/* Canvas Area */}
+        <div className="flex-1 overflow-auto">
+          <div className="min-h-full flex items-start justify-center p-8">
+            <div
+              className={cn(
+                "bg-white shadow-lg rounded-lg overflow-hidden transition-shadow duration-200",
+                isDragging && "shadow-xl ring-2 ring-blue-100"
+              )}
+              style={{ width: '600px', minHeight: '400px' }}
+            >
+              <CanvasBody node={document} />
+            </div>
           </div>
         </div>
+
+        {/* Drag hint */}
+        {isDragging && (
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-gray-900 text-white text-sm rounded-full shadow-lg z-50 pointer-events-none animate-in fade-in slide-in-from-bottom-2">
+            Release to drop the component
+          </div>
+        )}
       </div>
-    </div>
+    </DragStateContext.Provider>
   );
 }
 
@@ -80,7 +174,7 @@ function BreadcrumbItem({ node, isLast }: { node: EditorNode; isLast: boolean })
     <button
       onClick={() => setSelectedId(node.id)}
       className={cn(
-        'px-2 py-0.5 rounded text-xs font-medium transition-colors',
+        'px-2 py-0.5 rounded text-xs font-medium transition-colors whitespace-nowrap',
         isLast
           ? 'bg-primary text-primary-foreground'
           : 'hover:bg-muted text-muted-foreground hover:text-foreground'
@@ -88,6 +182,24 @@ function BreadcrumbItem({ node, isLast }: { node: EditorNode; isLast: boolean })
     >
       {def?.name || node.type}
     </button>
+  );
+}
+
+// Drop indicator line component
+function DropIndicatorLine({ position }: { position: 'before' | 'after' }) {
+  return (
+    <div
+      className={cn(
+        "absolute left-0 right-0 z-50 pointer-events-none",
+        position === 'before' ? '-top-0.5' : '-bottom-0.5'
+      )}
+    >
+      <div className="relative">
+        <div className="h-0.5 bg-blue-500 rounded-full" />
+        <div className="absolute -left-1 -top-1 w-2.5 h-2.5 bg-blue-500 rounded-full" />
+        <div className="absolute -right-1 -top-1 w-2.5 h-2.5 bg-blue-500 rounded-full" />
+      </div>
+    </div>
   );
 }
 
@@ -127,8 +239,9 @@ function CanvasNode({
 }) {
   const { selectedId, setSelectedId, hoveredId, setHoveredId, removeNode, duplicateNode } =
     useEditorStore();
+  const dragState = useContext(DragStateContext);
   const isSelected = selectedId === node.id;
-  const isHovered = hoveredId === node.id;
+  const isHovered = hoveredId === node.id && !dragState.isDragging;
 
   const {
     attributes,
@@ -137,19 +250,20 @@ function CanvasNode({
     transform,
     transition,
     isDragging,
+    isOver,
   } = useSortable({
     id: node.id,
     data: {
       type: 'existing-node',
       nodeId: node.id,
       parentId,
+      index,
     },
   });
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
+    transition: transition || 'transform 200ms ease',
   };
 
   const handleClick = useCallback(
@@ -161,8 +275,10 @@ function CanvasNode({
   );
 
   const handleMouseEnter = useCallback(() => {
-    setHoveredId(node.id);
-  }, [node.id, setHoveredId]);
+    if (!dragState.isDragging) {
+      setHoveredId(node.id);
+    }
+  }, [node.id, setHoveredId, dragState.isDragging]);
 
   const handleMouseLeave = useCallback(() => {
     setHoveredId(null);
@@ -205,58 +321,89 @@ function CanvasNode({
     }
   };
 
+  // Determine if we should show drop indicators
+  const showDropBefore = isOver && dragState.overPosition === 'before';
+  const showDropAfter = isOver && dragState.overPosition === 'after';
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={cn(
         'relative group transition-all duration-150',
-        isSelected && 'ring-2 ring-blue-500 ring-offset-1',
-        isHovered && !isSelected && 'ring-1 ring-blue-300',
-        isDragging && 'z-50'
+        // Selection states - only show when not dragging
+        !isDragging && isSelected && 'ring-2 ring-blue-500 ring-offset-2 rounded-sm',
+        !isDragging && isHovered && !isSelected && 'ring-2 ring-blue-300/50 rounded-sm',
+        // Dragging states
+        isDragging && 'opacity-40 scale-[0.98] ring-2 ring-blue-400 ring-dashed rounded-sm z-50',
+        // When being dragged over
+        isOver && !isDragging && 'ring-2 ring-blue-400 ring-offset-1 bg-blue-50/30 rounded-sm',
       )}
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Component Label */}
-      {(isSelected || isHovered) && (
-        <div className="absolute -top-6 left-0 z-10 flex items-center gap-1">
+      {/* Drop indicator - before */}
+      {showDropBefore && <DropIndicatorLine position="before" />}
+
+      {/* Component Label - shown on hover or selection, hidden during drag of this element */}
+      {(isSelected || isHovered) && !isDragging && (
+        <div className="absolute -top-7 left-0 z-20 flex items-center gap-1 animate-in fade-in slide-in-from-bottom-1 duration-150">
           {/* Drag Handle */}
           <button
             {...attributes}
             {...listeners}
-            className="p-1 rounded bg-blue-500 text-white cursor-grab active:cursor-grabbing"
+            className={cn(
+              "p-1.5 rounded-md bg-blue-500 text-white shadow-md",
+              "cursor-grab active:cursor-grabbing",
+              "hover:bg-blue-600 transition-colors",
+              "focus:outline-none focus:ring-2 focus:ring-blue-300"
+            )}
+            title="Drag to reorder"
           >
-            <GripVertical className="w-3 h-3" />
+            <GripVertical className="w-3.5 h-3.5" />
           </button>
-          <span className="text-xs font-medium px-2 py-0.5 rounded bg-blue-500 text-white">
+          <span className="text-xs font-medium px-2 py-1 rounded-md bg-blue-500 text-white shadow-md">
             {componentDefinitions[node.type]?.name || node.type}
           </span>
         </div>
       )}
 
-      {/* Actions */}
-      {isSelected && (
-        <div className="absolute -top-6 right-0 z-10 flex items-center gap-1">
+      {/* Actions - only shown when selected and not dragging */}
+      {isSelected && !isDragging && (
+        <div className="absolute -top-7 right-0 z-20 flex items-center gap-1 animate-in fade-in slide-in-from-bottom-1 duration-150">
           <button
             onClick={handleDuplicate}
-            className="p-1 rounded bg-white border shadow-sm hover:bg-gray-50 transition-colors"
-            title="Duplicate"
+            className={cn(
+              "p-1.5 rounded-md bg-white border border-gray-200 shadow-md",
+              "hover:bg-gray-50 hover:border-gray-300 transition-all",
+              "focus:outline-none focus:ring-2 focus:ring-blue-300"
+            )}
+            title="Duplicate (Ctrl+D)"
           >
-            <Copy className="w-3 h-3 text-gray-600" />
+            <Copy className="w-3.5 h-3.5 text-gray-600" />
           </button>
           <button
             onClick={handleDelete}
-            className="p-1 rounded bg-white border shadow-sm hover:bg-red-50 hover:border-red-200 transition-colors"
-            title="Delete"
+            className={cn(
+              "p-1.5 rounded-md bg-white border border-gray-200 shadow-md",
+              "hover:bg-red-50 hover:border-red-300 transition-all",
+              "focus:outline-none focus:ring-2 focus:ring-red-300"
+            )}
+            title="Delete (Del)"
           >
-            <Trash2 className="w-3 h-3 text-red-500" />
+            <Trash2 className="w-3.5 h-3.5 text-red-500" />
           </button>
         </div>
       )}
 
-      {renderContent()}
+      {/* Content */}
+      <div className={cn(isDragging && 'pointer-events-none')}>
+        {renderContent()}
+      </div>
+
+      {/* Drop indicator - after */}
+      {showDropAfter && <DropIndicatorLine position="after" />}
     </div>
   );
 }
@@ -519,7 +666,8 @@ function DroppableContainer({
   acceptTypes: MJMLComponentType[];
   children: React.ReactNode;
 }) {
-  const { isOver, setNodeRef } = useDroppable({
+  const dragState = useContext(DragStateContext);
+  const { isOver, setNodeRef, active } = useDroppable({
     id: `drop-${nodeId}`,
     data: {
       nodeId,
@@ -528,15 +676,42 @@ function DroppableContainer({
     },
   });
 
+  // Check if the dragged type is acceptable
+  const activeType = active?.data.current?.componentType as MJMLComponentType | undefined;
+  const isAcceptable = !activeType || acceptTypes.includes(activeType);
+
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        'transition-colors duration-150 min-h-[20px]',
-        isOver && 'bg-blue-50/50 ring-2 ring-blue-300 ring-inset'
+        'transition-all duration-200 min-h-[20px] relative',
+        // Highlight when dragging over and acceptable
+        isOver && isAcceptable && 'bg-blue-50/60 ring-2 ring-blue-400 ring-inset rounded-sm',
+        // Show warning when not acceptable
+        isOver && !isAcceptable && 'bg-red-50/60 ring-2 ring-red-300 ring-inset rounded-sm',
+        // Subtle highlight when dragging but not over
+        dragState.isDragging && !isOver && 'bg-gray-50/30'
       )}
     >
       {children}
+      
+      {/* Drop zone overlay when dragging */}
+      {isOver && isAcceptable && (
+        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+          <div className="px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-full shadow-lg animate-in zoom-in-90 duration-150">
+            Drop here
+          </div>
+        </div>
+      )}
+      
+      {/* Warning overlay when not acceptable */}
+      {isOver && !isAcceptable && (
+        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+          <div className="px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-full shadow-lg animate-in zoom-in-90 duration-150">
+            Cannot drop here
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -550,6 +725,7 @@ function EmptyDropZone({
   message: string;
   small?: boolean;
 }) {
+  const dragState = useContext(DragStateContext);
   const { isOver, setNodeRef } = useDroppable({
     id: `empty-${nodeId}`,
     data: {
@@ -562,14 +738,28 @@ function EmptyDropZone({
     <div
       ref={setNodeRef}
       className={cn(
-        'border-2 border-dashed rounded-lg flex items-center justify-center transition-all duration-150',
-        small ? 'p-4 border-muted-foreground/20' : 'p-8 border-muted-foreground/30',
-        isOver && 'border-blue-400 bg-blue-50 scale-[1.02]'
+        'border-2 border-dashed rounded-lg flex flex-col items-center justify-center transition-all duration-200',
+        small ? 'p-4 min-h-[60px]' : 'p-8 min-h-[120px]',
+        // Default state
+        !dragState.isDragging && 'border-gray-300 bg-gray-50/50',
+        // Dragging state (ready to receive)
+        dragState.isDragging && !isOver && 'border-blue-300 bg-blue-50/30 animate-pulse',
+        // Hovering over
+        isOver && 'border-blue-500 bg-blue-100/50 scale-[1.02] shadow-inner'
       )}
     >
-      <span className={cn('text-muted-foreground', small ? 'text-xs' : 'text-sm')}>
-        {message}
-      </span>
+      {dragState.isDragging ? (
+        <>
+          <Plus className={cn('text-blue-500 mb-1', small ? 'w-5 h-5' : 'w-8 h-8')} />
+          <span className={cn('text-blue-600 font-medium', small ? 'text-xs' : 'text-sm')}>
+            {isOver ? 'Release to drop' : message}
+          </span>
+        </>
+      ) : (
+        <span className={cn('text-gray-400', small ? 'text-xs' : 'text-sm')}>
+          {message}
+        </span>
+      )}
     </div>
   );
 }

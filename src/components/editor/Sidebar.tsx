@@ -99,17 +99,27 @@ function DraggableComponent({ type }: { type: MJMLComponentType }) {
       {...listeners}
       {...attributes}
       className={cn(
-        "flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-lg border border-border bg-background",
+        "flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-lg border bg-background",
         "cursor-grab active:cursor-grabbing transition-all duration-200",
-        "hover:border-primary/50 hover:bg-accent/50 hover:shadow-sm",
+        "hover:border-blue-300 hover:bg-blue-50/50 hover:shadow-sm",
         "min-h-[70px]",
-        isDragging && "opacity-50 scale-95"
+        "focus:outline-none focus:ring-2 focus:ring-blue-400/50",
+        // Normal state
+        !isDragging && "border-border",
+        // Dragging state - show clear visual feedback that it's being dragged
+        isDragging && "opacity-30 scale-95 border-dashed border-blue-400 bg-blue-50/30"
       )}
     >
       {IconComponent && (
-        <IconComponent className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+        <IconComponent className={cn(
+          "w-5 h-5 flex-shrink-0 transition-colors",
+          isDragging ? "text-blue-400" : "text-muted-foreground"
+        )} />
       )}
-      <span className="text-xs font-medium text-center leading-tight">
+      <span className={cn(
+        "text-xs font-medium text-center leading-tight transition-colors",
+        isDragging && "text-blue-400"
+      )}>
         {def.name}
       </span>
     </div>
