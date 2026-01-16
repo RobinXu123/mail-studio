@@ -3,7 +3,7 @@ import { temporal } from 'zundo';
 import { immer } from 'zustand/middleware/immer';
 import { EditorNode, MJMLComponentType, HeadSettings, FontDefinition } from '@/types/editor';
 import { emptyDocument, cloneDocumentWithNewIds } from '@/lib/mjml/templates';
-import { createNode, generateId } from '@/lib/mjml/schema';
+import { createNode, generateId, componentDefinitions } from '@/lib/mjml/schema';
 
 // Default head settings
 const defaultHeadSettings: HeadSettings = {
@@ -198,15 +198,49 @@ export const useEditorStore = create<EditorState>()(
 
       moveNode: (nodeId, newParentId, newIndex) =>
         set((state) => {
-          // Find and remove from current position
+          // Don't move if trying to move to itself
+          if (nodeId === newParentId) return;
+          
+          // Find and validate current parent
           const currentParentInfo = findParentInTree(state.document, nodeId);
-          if (!currentParentInfo) return;
+          if (!currentParentInfo) {
+            console.warn('moveNode: Could not find current parent for node', nodeId);
+            return;
+          }
 
-          const [node] = currentParentInfo.parent.children!.splice(currentParentInfo.index, 1);
-
-          // Find new parent and insert
+          // Find and validate new parent BEFORE removing from current position
           const newParent = findNodeInTree(state.document, newParentId);
-          if (!newParent) return;
+          if (!newParent) {
+            console.warn('moveNode: Could not find new parent', newParentId);
+            return;
+          }
+
+          // Get the node to be moved
+          const nodeToMove = currentParentInfo.parent.children![currentParentInfo.index];
+          
+          // Validate that the new parent can accept this type of child
+          const newParentDef = componentDefinitions[newParent.type];
+          if (newParentDef && newParentDef.allowedChildren) {
+            if (!newParentDef.allowedChildren.includes(nodeToMove.type)) {
+              console.warn(`moveNode: ${newParent.type} cannot contain ${nodeToMove.type}`);
+              return;
+            }
+          }
+
+          // Don't allow moving a node into itself or its descendants
+          const isDescendant = (parent: EditorNode, targetId: string): boolean => {
+            if (parent.id === targetId) return true;
+            if (!parent.children) return false;
+            return parent.children.some(child => isDescendant(child, targetId));
+          };
+          
+          if (isDescendant(nodeToMove, newParentId)) {
+            console.warn('moveNode: Cannot move node into itself or its descendants');
+            return;
+          }
+
+          // Now safe to remove from current position
+          const [node] = currentParentInfo.parent.children!.splice(currentParentInfo.index, 1);
 
           if (!newParent.children) {
             newParent.children = [];
@@ -217,6 +251,10 @@ export const useEditorStore = create<EditorState>()(
           if (currentParentInfo.parent.id === newParentId && currentParentInfo.index < newIndex) {
             adjustedIndex = Math.max(0, newIndex - 1);
           }
+          
+          // Ensure index is within bounds
+          adjustedIndex = Math.min(adjustedIndex, newParent.children.length);
+          adjustedIndex = Math.max(0, adjustedIndex);
 
           newParent.children.splice(adjustedIndex, 0, node);
         }),

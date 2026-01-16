@@ -77,12 +77,48 @@ export function Editor() {
       // Handle existing node move
       else if (activeData.type === "existing-node") {
         const nodeId = activeData.nodeId as string;
-        const targetId = overData.nodeId as string;
-        const index = (overData.index as number) ?? 0;
-
-        if (nodeId !== targetId) {
-          moveNode(nodeId, targetId, index);
+        
+        // Determine the actual target parent and index
+        // If dropping on a DroppableContainer (drop-* or empty-*), use that nodeId as parent
+        // If dropping on another sortable node, use that node's parent
+        const overId = over.id as string;
+        const isDropContainer = overId.startsWith('drop-') || overId.startsWith('empty-');
+        
+        let targetParentId: string;
+        let targetIndex: number;
+        
+        if (isDropContainer) {
+          // Dropping directly into a container
+          targetParentId = overData.nodeId as string;
+          targetIndex = (overData.index as number) ?? 0;
+        } else if (overData.type === 'existing-node') {
+          // Dropping onto another node - use the node's parent as the target
+          targetParentId = overData.parentId as string;
+          targetIndex = (overData.index as number) ?? 0;
+          
+          // Don't move if trying to drop on itself
+          if (nodeId === overId) return;
+          
+          // If the active node is from the same parent and before the over node,
+          // we need to adjust the index
+          if (activeData.parentId === targetParentId) {
+            const activeIndex = activeData.index as number;
+            if (activeIndex < targetIndex) {
+              targetIndex = targetIndex; // Insert after the over node
+            } else {
+              targetIndex = targetIndex; // Insert at the over node's position
+            }
+          }
+        } else {
+          // Fallback
+          targetParentId = overData.nodeId as string;
+          targetIndex = (overData.index as number) ?? 0;
         }
+
+        // Don't move if nothing changes
+        if (nodeId === targetParentId) return;
+        
+        moveNode(nodeId, targetParentId, targetIndex);
       }
     },
     [addNode, moveNode, setIsDragging]
