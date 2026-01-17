@@ -72,7 +72,8 @@ export function EditMode() {
   const document = useEditorStore((s) => s.document);
   const addChildNode = useEditorStore((s) => s.addChildNode);
   const moveNode = useEditorStore((s) => s.moveNode);
-  const [activeSectionId, setActiveSectionId] = useState<UniqueIdentifier | null>(null);
+  const [activeSectionId, setActiveSectionId] =
+    useState<UniqueIdentifier | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -166,12 +167,15 @@ export function EditMode() {
           onDragStart={handleSectionDragStart}
           onDragEnd={handleSectionDragEnd}
         >
-          <SortableContext items={sectionIds} strategy={verticalListSortingStrategy}>
+          <SortableContext
+            items={sectionIds}
+            strategy={verticalListSortingStrategy}
+          >
             <div className="space-y-2">
               {document.children?.map((section) => (
                 <SortableSectionContainer key={section.id} node={section} />
               ))}
-              
+
               {/* Add Section Button */}
               <AddSectionButton onAddSection={handleAddSection} />
             </div>
@@ -192,7 +196,11 @@ export function EditMode() {
   );
 }
 
-function AddSectionButton({ onAddSection }: { onAddSection: (columns: number) => void }) {
+function AddSectionButton({
+  onAddSection,
+}: {
+  onAddSection: (columns: number) => void;
+}) {
   const [isOpen, setIsOpen] = useState(false);
 
   const layouts = [
@@ -218,7 +226,9 @@ function AddSectionButton({ onAddSection }: { onAddSection: (columns: number) =>
       </PopoverTrigger>
       <PopoverContent className="w-48 p-2" align="center">
         <div className="space-y-1">
-          <p className="text-xs font-medium text-gray-500 px-2 mb-2">Choose Layout</p>
+          <p className="text-xs font-medium text-gray-500 px-2 mb-2">
+            Choose Layout
+          </p>
           {layouts.map(({ columns, label, icon }) => (
             <button
               key={columns}
@@ -228,7 +238,9 @@ function AddSectionButton({ onAddSection }: { onAddSection: (columns: number) =>
               }}
               className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg hover:bg-gray-100 transition-colors"
             >
-              <span className="text-xs font-mono text-gray-400 w-12">{icon}</span>
+              <span className="text-xs font-mono text-gray-400 w-12">
+                {icon}
+              </span>
               {label}
             </button>
           ))}
@@ -272,9 +284,14 @@ interface EditSectionContainerProps {
   isDragging?: boolean;
 }
 
-function EditSectionContainer({ node, dragHandleProps, isDragging }: EditSectionContainerProps) {
+function EditSectionContainer({
+  node,
+  dragHandleProps,
+  isDragging,
+}: EditSectionContainerProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const { selectedId, setSelectedId, removeNode, duplicateNode, addChildNode } = useEditorStore();
+  const { selectedId, setSelectedId, removeNode, duplicateNode, addChildNode } =
+    useEditorStore();
   const isSelected = selectedId === node.id;
 
   // Handle special section types
@@ -398,18 +415,26 @@ function EditSectionContainer({ node, dragHandleProps, isDragging }: EditSection
       {/* Section Content */}
       <div
         className="min-h-[80px] rounded-lg"
-        style={{ backgroundColor: bgColor !== "transparent" ? bgColor : undefined }}
+        style={{
+          backgroundColor: bgColor !== "transparent" ? bgColor : undefined,
+        }}
       >
         {columnCount > 0 ? (
-          <div className={cn(
-            "grid gap-2 p-2",
-            columnCount === 1 && "grid-cols-1",
-            columnCount === 2 && "grid-cols-2",
-            columnCount === 3 && "grid-cols-3",
-            columnCount >= 4 && "grid-cols-4"
-          )}>
+          <div
+            className={cn(
+              "grid gap-2 p-2",
+              columnCount === 1 && "grid-cols-1",
+              columnCount === 2 && "grid-cols-2",
+              columnCount === 3 && "grid-cols-3",
+              columnCount >= 4 && "grid-cols-4"
+            )}
+          >
             {node.children?.map((column) => (
-              <EditColumnContainer key={column.id} node={column} parentId={node.id} />
+              <EditColumnContainer
+                key={column.id}
+                node={column}
+                parentId={node.id}
+              />
             ))}
           </div>
         ) : (
@@ -438,9 +463,10 @@ interface EditHeroContainerProps {
 
 function EditHeroContainer({ node, dragHandleProps }: EditHeroContainerProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const { selectedId, setSelectedId, removeNode, duplicateNode } = useEditorStore();
+  const { selectedId, setSelectedId, removeNode, duplicateNode } =
+    useEditorStore();
   const isSelected = selectedId === node.id;
-  
+
   const bgColor = (node.props["background-color"] as string) || "#1e293b";
   const bgImage = node.props["background-url"] as string;
   const height = (node.props["height"] as string) || "300px";
@@ -518,14 +544,33 @@ function EditHeroContainer({ node, dragHandleProps }: EditHeroContainerProps) {
   );
 }
 
-function EditColumnContainer({ node, parentId }: { node: EditorNode; parentId: string }) {
+function EditColumnContainer({
+  node,
+  parentId,
+}: {
+  node: EditorNode;
+  parentId: string;
+}) {
   const [isHovered, setIsHovered] = useState(false);
-  const { selectedId, setSelectedId, removeNode, moveNode } = useEditorStore();
+  const { selectedId, setSelectedId, removeNode, moveNode, findNode } =
+    useEditorStore();
   const isSelected = selectedId === node.id;
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
 
   const bgColor = (node.props["background-color"] as string) || "transparent";
   const width = node.props["width"] as string;
+
+  // Get parent section's background color
+  const parentSection = findNode(parentId);
+  const parentBgColor = parentSection?.props?.["background-color"] as
+    | string
+    | undefined;
+  const hasColoredParent =
+    parentBgColor &&
+    parentBgColor !== "transparent" &&
+    parentBgColor !== "#ffffff" &&
+    parentBgColor !== "#fff" &&
+    parentBgColor !== "white";
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -566,11 +611,32 @@ function EditColumnContainer({ node, parentId }: { node: EditorNode; parentId: s
     <div
       className={cn(
         "relative group min-h-[60px] rounded-lg transition-all",
-        isSelected ? "ring-2 ring-blue-300 ring-inset" : "",
-        isHovered && !isSelected && "ring-1 ring-gray-200 ring-inset",
-        "bg-white/50"
+        // Light backgrounds - selection/hover states
+        !hasColoredParent &&
+          isSelected &&
+          "ring-2 ring-blue-300 ring-inset bg-blue-50/30",
+        !hasColoredParent &&
+          isHovered &&
+          !isSelected &&
+          "ring-1 ring-gray-200 ring-inset bg-gray-50/50",
+        // Colored backgrounds - use semi-transparent overlays that blend
+        hasColoredParent &&
+          isSelected &&
+          "ring-2 ring-white/30 ring-inset bg-white/10",
+        hasColoredParent &&
+          isHovered &&
+          !isSelected &&
+          "ring-1 ring-white/15 ring-inset bg-white/5",
+        // Only add light background when parent doesn't have a colored background and not hovered/selected
+        !hasColoredParent &&
+          bgColor === "transparent" &&
+          !isHovered &&
+          !isSelected &&
+          "bg-white/50"
       )}
-      style={{ backgroundColor: bgColor !== "transparent" ? bgColor : undefined }}
+      style={{
+        backgroundColor: bgColor !== "transparent" ? bgColor : undefined,
+      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={(e) => {
@@ -583,8 +649,20 @@ function EditColumnContainer({ node, parentId }: { node: EditorNode; parentId: s
         <div className="absolute -top-2 right-1 z-10">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="p-1 bg-white rounded shadow-sm border border-gray-200 hover:bg-gray-50">
-                <MoreHorizontal className="w-3 h-3 text-gray-500" />
+              <button
+                className={cn(
+                  "p-1 rounded shadow-sm border",
+                  hasColoredParent
+                    ? "bg-white/90 border-white/50 hover:bg-white"
+                    : "bg-white border-gray-200 hover:bg-gray-50"
+                )}
+              >
+                <MoreHorizontal
+                  className={cn(
+                    "w-3 h-3",
+                    hasColoredParent ? "text-gray-700" : "text-gray-500"
+                  )}
+                />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-32">
@@ -615,12 +693,23 @@ function EditColumnContainer({ node, parentId }: { node: EditorNode; parentId: s
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
+        <SortableContext
+          items={childIds}
+          strategy={verticalListSortingStrategy}
+        >
           <div className="p-2 space-y-1">
             {node.children?.map((child) => (
-              <SortableEditBlock key={child.id} node={child} parentId={node.id} />
+              <SortableEditBlock
+                key={child.id}
+                node={child}
+                parentId={node.id}
+                hasColoredParent={!!hasColoredParent}
+              />
             ))}
-            <AddBlockButton parentId={node.id} />
+            <AddBlockButton
+              parentId={node.id}
+              hasColoredParent={!!hasColoredParent}
+            />
           </div>
         </SortableContext>
         <DragOverlay>
@@ -635,9 +724,16 @@ function EditColumnContainer({ node, parentId }: { node: EditorNode; parentId: s
   );
 }
 
-
 // Sortable wrapper for EditBlock
-function SortableEditBlock({ node, parentId }: { node: EditorNode; parentId: string }) {
+function SortableEditBlock({
+  node,
+  parentId,
+  hasColoredParent,
+}: {
+  node: EditorNode;
+  parentId: string;
+  hasColoredParent: boolean;
+}) {
   const {
     attributes,
     listeners,
@@ -660,6 +756,7 @@ function SortableEditBlock({ node, parentId }: { node: EditorNode; parentId: str
         parentId={parentId}
         dragHandleProps={{ ...attributes, ...listeners }}
         isDragging={isDragging}
+        hasColoredParent={hasColoredParent}
       />
     </div>
   );
@@ -693,7 +790,8 @@ function EditBlockContent({ node }: { node: EditorNode }) {
           <span
             className="inline-block px-4 py-2 text-sm rounded"
             style={{
-              backgroundColor: (node.props["background-color"] as string) || "#2563eb",
+              backgroundColor:
+                (node.props["background-color"] as string) || "#2563eb",
               color: (node.props["color"] as string) || "#ffffff",
             }}
           >
@@ -711,7 +809,13 @@ function EditBlockContent({ node }: { node: EditorNode }) {
           Spacer ({node.props["height"] || "30px"})
         </div>
       )}
-      {!["mj-text", "mj-image", "mj-button", "mj-divider", "mj-spacer"].includes(node.type) && (
+      {![
+        "mj-text",
+        "mj-image",
+        "mj-button",
+        "mj-divider",
+        "mj-spacer",
+      ].includes(node.type) && (
         <div className="py-2 text-center text-gray-500 text-sm">
           {node.type.replace("mj-", "")}
         </div>
@@ -725,9 +829,16 @@ interface EditBlockProps {
   parentId: string;
   dragHandleProps?: Record<string, unknown>;
   isDragging?: boolean;
+  hasColoredParent?: boolean;
 }
 
-function EditBlock({ node, parentId, dragHandleProps, isDragging }: EditBlockProps) {
+function EditBlock({
+  node,
+  parentId,
+  dragHandleProps,
+  isDragging,
+  hasColoredParent = false,
+}: EditBlockProps) {
   const [isHovered, setIsHovered] = useState(false);
   const { removeNode, selectedId, setSelectedId } = useEditorStore();
   const isSelected = selectedId === node.id;
@@ -736,27 +847,37 @@ function EditBlock({ node, parentId, dragHandleProps, isDragging }: EditBlockPro
     removeNode(node.id);
   }, [node.id, removeNode]);
 
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    // Only select if not clicking on an editable element
-    const target = e.target as HTMLElement;
-    if (!target.closest('[contenteditable="true"]')) {
-      setSelectedId(node.id);
-    }
-  }, [node.id, setSelectedId]);
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      // Only select if not clicking on an editable element
+      const target = e.target as HTMLElement;
+      if (!target.closest('[contenteditable="true"]')) {
+        setSelectedId(node.id);
+      }
+    },
+    [node.id, setSelectedId]
+  );
 
   return (
     <div
       className={cn(
         "group relative rounded-lg transition-all duration-150",
-        isHovered && "bg-gray-50",
-        isSelected && "bg-blue-50/50 ring-2 ring-blue-200",
+        // Light backgrounds
+        !hasColoredParent && isHovered && "bg-gray-100/70",
+        !hasColoredParent && isSelected && "bg-blue-50/50 ring-2 ring-blue-200",
+        // Colored backgrounds - use semi-transparent overlays that blend
+        hasColoredParent &&
+          isHovered &&
+          !isSelected &&
+          "bg-white/10 ring-1 ring-white/20",
+        hasColoredParent && isSelected && "bg-white/15 ring-2 ring-white/40",
         isDragging && "opacity-50"
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleClick}
     >
-      {/* Block Controls */}
+      {/* Block Controls - positioned outside colored area, always use dark colors */}
       <div
         className={cn(
           "absolute -left-10 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 transition-opacity",
@@ -764,7 +885,7 @@ function EditBlock({ node, parentId, dragHandleProps, isDragging }: EditBlockPro
         )}
       >
         <button
-          className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing touch-none"
+          className="p-1 rounded cursor-grab active:cursor-grabbing touch-none hover:bg-gray-200 text-gray-400 hover:text-gray-600"
           title="Drag to reorder"
           {...dragHandleProps}
         >
@@ -939,7 +1060,7 @@ function EditableText({ node }: { node: EditorNode }) {
         onInput={handleInput}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        className="outline-none min-h-[1.6em] px-2 py-1"
+        className="outline-none min-h-[1.6em] px-2 py-1 rounded focus:ring-2 focus:ring-white/30"
         style={style}
       />
     </div>
@@ -1189,7 +1310,13 @@ function EditableTable({ node }: { node: EditorNode }) {
 }
 
 function EditableSocial({ node }: { node: EditorNode }) {
-  const { updateNodeChildren, selectedId, setSelectedId, addChildNode, removeNode } = useEditorStore();
+  const {
+    updateNodeChildren,
+    selectedId,
+    setSelectedId,
+    addChildNode,
+    removeNode,
+  } = useEditorStore();
   const isSelected = selectedId === node.id;
   const children = node.children || [];
 
@@ -1222,7 +1349,9 @@ function EditableSocial({ node }: { node: EditorNode }) {
       >
         <div className="flex items-center gap-2 mb-2">
           <Share2 className="w-4 h-4 text-gray-500" />
-          <span className="text-xs font-medium text-gray-600">Social Links</span>
+          <span className="text-xs font-medium text-gray-600">
+            Social Links
+          </span>
         </div>
 
         <div className="flex flex-wrap gap-2 mb-3">
@@ -1276,7 +1405,14 @@ function EditableSocial({ node }: { node: EditorNode }) {
 }
 
 function EditableNavbar({ node }: { node: EditorNode }) {
-  const { updateNodeContent, updateNodeProps, addChildNode, removeNode, selectedId, setSelectedId } = useEditorStore();
+  const {
+    updateNodeContent,
+    updateNodeProps,
+    addChildNode,
+    removeNode,
+    selectedId,
+    setSelectedId,
+  } = useEditorStore();
   const isSelected = selectedId === node.id;
   const children = node.children || [];
 
@@ -1301,15 +1437,14 @@ function EditableNavbar({ node }: { node: EditorNode }) {
       >
         <div className="flex items-center gap-2 mb-2">
           <Menu className="w-4 h-4 text-gray-500" />
-          <span className="text-xs font-medium text-gray-600">Navigation Bar</span>
+          <span className="text-xs font-medium text-gray-600">
+            Navigation Bar
+          </span>
         </div>
 
         <div className="flex flex-wrap gap-2 mb-3">
           {children.map((child) => (
-            <div
-              key={child.id}
-              className="group relative flex items-center"
-            >
+            <div key={child.id} className="group relative flex items-center">
               <input
                 type="text"
                 value={child.content || ""}
@@ -1349,7 +1484,8 @@ function EditableNavbar({ node }: { node: EditorNode }) {
 }
 
 function EditableAccordion({ node }: { node: EditorNode }) {
-  const { addChildNode, removeNode, selectedId, setSelectedId } = useEditorStore();
+  const { addChildNode, removeNode, selectedId, setSelectedId } =
+    useEditorStore();
   const isSelected = selectedId === node.id;
   const children = node.children || [];
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -1469,7 +1605,13 @@ function EditableAccordion({ node }: { node: EditorNode }) {
 }
 
 function EditableCarousel({ node }: { node: EditorNode }) {
-  const { addChildNode, removeNode, updateNodeProps, selectedId, setSelectedId } = useEditorStore();
+  const {
+    addChildNode,
+    removeNode,
+    updateNodeProps,
+    selectedId,
+    setSelectedId,
+  } = useEditorStore();
   const isSelected = selectedId === node.id;
   const children = node.children || [];
   const [activeIndex, setActiveIndex] = useState(0);
@@ -1511,12 +1653,12 @@ function EditableCarousel({ node }: { node: EditorNode }) {
               {children[activeIndex] && (
                 <img
                   src={children[activeIndex].props.src as string}
-                  alt={children[activeIndex].props.alt as string || ""}
+                  alt={(children[activeIndex].props.alt as string) || ""}
                   className="w-full h-full object-cover"
                 />
               )}
             </div>
-            
+
             {/* Navigation dots */}
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
               {children.map((_, index) => (
@@ -1540,7 +1682,9 @@ function EditableCarousel({ node }: { node: EditorNode }) {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    setActiveIndex((i) => (i > 0 ? i - 1 : children.length - 1));
+                    setActiveIndex((i) =>
+                      i > 0 ? i - 1 : children.length - 1
+                    );
                   }}
                   className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 hover:bg-white flex items-center justify-center"
                 >
@@ -1549,7 +1693,9 @@ function EditableCarousel({ node }: { node: EditorNode }) {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    setActiveIndex((i) => (i < children.length - 1 ? i + 1 : 0));
+                    setActiveIndex((i) =>
+                      i < children.length - 1 ? i + 1 : 0
+                    );
                   }}
                   className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 hover:bg-white flex items-center justify-center"
                 >
@@ -1559,9 +1705,7 @@ function EditableCarousel({ node }: { node: EditorNode }) {
             )}
           </div>
         ) : (
-          <div className="p-8 text-center text-gray-400">
-            No slides yet
-          </div>
+          <div className="p-8 text-center text-gray-400">No slides yet</div>
         )}
 
         {/* Slide management */}
@@ -1685,7 +1829,13 @@ function EditableRaw({ node }: { node: EditorNode }) {
   );
 }
 
-function AddBlockButton({ parentId }: { parentId: string }) {
+function AddBlockButton({
+  parentId,
+  hasColoredParent = false,
+}: {
+  parentId: string;
+  hasColoredParent?: boolean;
+}) {
   const { addNode, findNode } = useEditorStore();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -1715,31 +1865,94 @@ function AddBlockButton({ parentId }: { parentId: string }) {
   };
 
   const blockTypes = [
-    { type: "mj-text" as const, icon: Type, label: "Text", category: "content" },
-    { type: "mj-image" as const, icon: Image, label: "Image", category: "content" },
-    { type: "mj-button" as const, icon: MousePointerClick, label: "Button", category: "interactive" },
-    { type: "mj-divider" as const, icon: Minus, label: "Divider", category: "content" },
-    { type: "mj-spacer" as const, icon: MoveVertical, label: "Spacer", category: "content" },
-    { type: "mj-table" as const, icon: Table, label: "Table", category: "content" },
-    { type: "mj-social" as const, icon: Share2, label: "Social", category: "interactive" },
-    { type: "mj-navbar" as const, icon: Menu, label: "Navbar", category: "interactive" },
-    { type: "mj-accordion" as const, icon: ChevronDown, label: "Accordion", category: "interactive" },
-    { type: "mj-carousel" as const, icon: GalleryHorizontal, label: "Carousel", category: "interactive" },
-    { type: "mj-raw" as const, icon: Code, label: "Raw HTML", category: "content" },
+    {
+      type: "mj-text" as const,
+      icon: Type,
+      label: "Text",
+      category: "content",
+    },
+    {
+      type: "mj-image" as const,
+      icon: Image,
+      label: "Image",
+      category: "content",
+    },
+    {
+      type: "mj-button" as const,
+      icon: MousePointerClick,
+      label: "Button",
+      category: "interactive",
+    },
+    {
+      type: "mj-divider" as const,
+      icon: Minus,
+      label: "Divider",
+      category: "content",
+    },
+    {
+      type: "mj-spacer" as const,
+      icon: MoveVertical,
+      label: "Spacer",
+      category: "content",
+    },
+    {
+      type: "mj-table" as const,
+      icon: Table,
+      label: "Table",
+      category: "content",
+    },
+    {
+      type: "mj-social" as const,
+      icon: Share2,
+      label: "Social",
+      category: "interactive",
+    },
+    {
+      type: "mj-navbar" as const,
+      icon: Menu,
+      label: "Navbar",
+      category: "interactive",
+    },
+    {
+      type: "mj-accordion" as const,
+      icon: ChevronDown,
+      label: "Accordion",
+      category: "interactive",
+    },
+    {
+      type: "mj-carousel" as const,
+      icon: GalleryHorizontal,
+      label: "Carousel",
+      category: "interactive",
+    },
+    {
+      type: "mj-raw" as const,
+      icon: Code,
+      label: "Raw HTML",
+      category: "content",
+    },
   ];
 
   const contentBlocks = blockTypes.filter((b) => b.category === "content");
-  const interactiveBlocks = blockTypes.filter((b) => b.category === "interactive");
+  const interactiveBlocks = blockTypes.filter(
+    (b) => b.category === "interactive"
+  );
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <button
           className={cn(
-            "w-full py-2 flex items-center justify-center gap-2 text-gray-400 rounded-lg transition-all",
-            "hover:bg-gray-50 hover:text-gray-600",
+            "w-full py-2 flex items-center justify-center gap-2 rounded-lg transition-all",
             "opacity-0 hover:opacity-100 focus:opacity-100",
-            isOpen && "opacity-100 bg-gray-50"
+            // Light backgrounds
+            !hasColoredParent &&
+              "text-gray-400 hover:bg-gray-100 hover:text-gray-600",
+            !hasColoredParent && isOpen && "opacity-100 bg-gray-100",
+            // Colored backgrounds - blend with semi-transparent overlay
+            hasColoredParent &&
+              "text-white/60 hover:bg-white/10 hover:text-white/90",
+            hasColoredParent && isOpen && "opacity-100 bg-white/10"
           )}
         >
           <Plus className="w-4 h-4" />
