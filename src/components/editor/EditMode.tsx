@@ -6,6 +6,25 @@ import { EditorNode, MJMLComponentType } from "@/types/editor";
 import { generateId } from "@/lib/mjml/schema";
 import { cn } from "@/lib/utils";
 import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragEndEvent,
+  UniqueIdentifier,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   Bold,
   Italic,
   Underline,
@@ -52,6 +71,43 @@ import {
 export function EditMode() {
   const document = useEditorStore((s) => s.document);
   const addChildNode = useEditorStore((s) => s.addChildNode);
+  const moveNode = useEditorStore((s) => s.moveNode);
+  const [activeSectionId, setActiveSectionId] = useState<UniqueIdentifier | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 10,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const sectionIds = document.children?.map((section) => section.id) || [];
+
+  const handleSectionDragStart = (event: DragStartEvent) => {
+    setActiveSectionId(event.active.id);
+  };
+
+  const handleSectionDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveSectionId(null);
+
+    if (over && active.id !== over.id) {
+      const oldIndex = sectionIds.indexOf(active.id as string);
+      const newIndex = sectionIds.indexOf(over.id as string);
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        moveNode(active.id as string, document.id, newIndex);
+      }
+    }
+  };
+
+  const activeSection = activeSectionId
+    ? document.children?.find((section) => section.id === activeSectionId)
+    : null;
 
   const handleAddSection = (columnCount: number = 1) => {
     // Create a section with specified number of columns
@@ -104,14 +160,33 @@ export function EditMode() {
         </div>
 
         {/* Email Body */}
-        <div className="space-y-2">
-          {document.children?.map((section) => (
-            <EditSectionContainer key={section.id} node={section} />
-          ))}
-          
-          {/* Add Section Button */}
-          <AddSectionButton onAddSection={handleAddSection} />
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleSectionDragStart}
+          onDragEnd={handleSectionDragEnd}
+        >
+          <SortableContext items={sectionIds} strategy={verticalListSortingStrategy}>
+            <div className="space-y-2">
+              {document.children?.map((section) => (
+                <SortableSectionContainer key={section.id} node={section} />
+              ))}
+              
+              {/* Add Section Button */}
+              <AddSectionButton onAddSection={handleAddSection} />
+            </div>
+          </SortableContext>
+          <DragOverlay>
+            {activeSection ? (
+              <div className="bg-white rounded-lg shadow-xl border-2 border-blue-400 opacity-90 p-4">
+                <div className="text-center text-gray-500 text-sm">
+                  <LayoutGrid className="w-5 h-5 mx-auto mb-1" />
+                  Section ({activeSection.children?.length || 0} columns)
+                </div>
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       </div>
     </div>
   );
@@ -163,14 +238,48 @@ function AddSectionButton({ onAddSection }: { onAddSection: (columns: number) =>
   );
 }
 
-function EditSectionContainer({ node }: { node: EditorNode }) {
+// Sortable wrapper for Section
+function SortableSectionContainer({ node }: { node: EditorNode }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: node.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <EditSectionContainer
+        node={node}
+        dragHandleProps={{ ...attributes, ...listeners }}
+        isDragging={isDragging}
+      />
+    </div>
+  );
+}
+
+interface EditSectionContainerProps {
+  node: EditorNode;
+  dragHandleProps?: Record<string, unknown>;
+  isDragging?: boolean;
+}
+
+function EditSectionContainer({ node, dragHandleProps, isDragging }: EditSectionContainerProps) {
   const [isHovered, setIsHovered] = useState(false);
   const { selectedId, setSelectedId, removeNode, duplicateNode, addChildNode } = useEditorStore();
   const isSelected = selectedId === node.id;
 
   // Handle special section types
   if (node.type === "mj-hero") {
-    return <EditHeroContainer node={node} />;
+    return <EditHeroContainer node={node} dragHandleProps={dragHandleProps} />;
   }
 
   if (node.type === "mj-wrapper") {
@@ -188,7 +297,15 @@ function EditSectionContainer({ node }: { node: EditorNode }) {
           setSelectedId(node.id);
         }}
       >
-        <div className="absolute -top-3 left-3 px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-500 font-medium">
+        <div className="absolute -top-3 left-3 px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-500 font-medium flex items-center gap-1">
+          {dragHandleProps && (
+            <button
+              className="cursor-grab active:cursor-grabbing touch-none"
+              {...dragHandleProps}
+            >
+              <GripVertical className="w-3 h-3" />
+            </button>
+          )}
           Wrapper
         </div>
         <div className="p-4 space-y-2">
@@ -218,7 +335,8 @@ function EditSectionContainer({ node }: { node: EditorNode }) {
       className={cn(
         "relative group rounded-lg transition-all",
         isSelected ? "ring-2 ring-blue-400 ring-offset-2" : "",
-        isHovered && !isSelected && "ring-2 ring-gray-200"
+        isHovered && !isSelected && "ring-2 ring-gray-200",
+        isDragging && "opacity-50"
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -230,6 +348,15 @@ function EditSectionContainer({ node }: { node: EditorNode }) {
       {/* Section Controls */}
       {(isHovered || isSelected) && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 px-2 py-1 bg-white rounded-lg shadow-sm border border-gray-200">
+          {dragHandleProps && (
+            <button
+              className="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-700 cursor-grab active:cursor-grabbing touch-none"
+              title="Drag to reorder"
+              {...dragHandleProps}
+            >
+              <GripVertical className="w-3.5 h-3.5" />
+            </button>
+          )}
           <span className="text-xs text-gray-500 font-medium mr-1">
             <LayoutGrid className="w-3 h-3 inline mr-1" />
             Section
@@ -304,7 +431,12 @@ function EditSectionContainer({ node }: { node: EditorNode }) {
   );
 }
 
-function EditHeroContainer({ node }: { node: EditorNode }) {
+interface EditHeroContainerProps {
+  node: EditorNode;
+  dragHandleProps?: Record<string, unknown>;
+}
+
+function EditHeroContainer({ node, dragHandleProps }: EditHeroContainerProps) {
   const [isHovered, setIsHovered] = useState(false);
   const { selectedId, setSelectedId, removeNode, duplicateNode } = useEditorStore();
   const isSelected = selectedId === node.id;
@@ -330,6 +462,15 @@ function EditHeroContainer({ node }: { node: EditorNode }) {
       {/* Hero Controls */}
       {(isHovered || isSelected) && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 px-2 py-1 bg-black/60 rounded-lg">
+          {dragHandleProps && (
+            <button
+              className="p-1 rounded hover:bg-white/20 text-white/80 hover:text-white cursor-grab active:cursor-grabbing touch-none"
+              title="Drag to reorder"
+              {...dragHandleProps}
+            >
+              <GripVertical className="w-3.5 h-3.5" />
+            </button>
+          )}
           <span className="text-xs text-white/80 font-medium mr-1">
             <LayoutTemplate className="w-3 h-3 inline mr-1" />
             Hero
@@ -379,11 +520,47 @@ function EditHeroContainer({ node }: { node: EditorNode }) {
 
 function EditColumnContainer({ node, parentId }: { node: EditorNode; parentId: string }) {
   const [isHovered, setIsHovered] = useState(false);
-  const { selectedId, setSelectedId, removeNode } = useEditorStore();
+  const { selectedId, setSelectedId, removeNode, moveNode } = useEditorStore();
   const isSelected = selectedId === node.id;
+  const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
 
   const bgColor = (node.props["background-color"] as string) || "transparent";
   const width = node.props["width"] as string;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const childIds = node.children?.map((child) => child.id) || [];
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (over && active.id !== over.id) {
+      const oldIndex = childIds.indexOf(active.id as string);
+      const newIndex = childIds.indexOf(over.id as string);
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        moveNode(active.id as string, node.id, newIndex);
+      }
+    }
+  };
+
+  const activeNode = activeId
+    ? node.children?.find((child) => child.id === activeId)
+    : null;
 
   return (
     <div
@@ -432,18 +609,125 @@ function EditColumnContainer({ node, parentId }: { node: EditorNode; parentId: s
       )}
 
       {/* Column Content */}
-      <div className="p-2 space-y-1">
-        {node.children?.map((child) => (
-          <EditBlock key={child.id} node={child} parentId={node.id} />
-        ))}
-        <AddBlockButton parentId={node.id} />
-      </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
+          <div className="p-2 space-y-1">
+            {node.children?.map((child) => (
+              <SortableEditBlock key={child.id} node={child} parentId={node.id} />
+            ))}
+            <AddBlockButton parentId={node.id} />
+          </div>
+        </SortableContext>
+        <DragOverlay>
+          {activeNode ? (
+            <div className="bg-white rounded-lg shadow-lg border-2 border-blue-400 opacity-90">
+              <EditBlockContent node={activeNode} />
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
     </div>
   );
 }
 
 
-function EditBlock({ node, parentId }: { node: EditorNode; parentId: string }) {
+// Sortable wrapper for EditBlock
+function SortableEditBlock({ node, parentId }: { node: EditorNode; parentId: string }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: node.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <EditBlock
+        node={node}
+        parentId={parentId}
+        dragHandleProps={{ ...attributes, ...listeners }}
+        isDragging={isDragging}
+      />
+    </div>
+  );
+}
+
+// Block content component for DragOverlay
+function EditBlockContent({ node }: { node: EditorNode }) {
+  return (
+    <div className="py-1 px-2">
+      {node.type === "mj-text" && (
+        <div
+          className="min-h-[1.6em] px-2 py-1 text-gray-600"
+          dangerouslySetInnerHTML={{ __html: node.content || "Text block" }}
+        />
+      )}
+      {node.type === "mj-image" && (
+        <div className="py-2 text-center">
+          {node.props["src"] ? (
+            <img
+              src={node.props["src"] as string}
+              alt=""
+              className="max-w-full h-auto max-h-20 rounded"
+            />
+          ) : (
+            <div className="text-gray-400 text-sm">Image</div>
+          )}
+        </div>
+      )}
+      {node.type === "mj-button" && (
+        <div className="py-2 text-center">
+          <span
+            className="inline-block px-4 py-2 text-sm rounded"
+            style={{
+              backgroundColor: (node.props["background-color"] as string) || "#2563eb",
+              color: (node.props["color"] as string) || "#ffffff",
+            }}
+          >
+            {node.content || "Button"}
+          </span>
+        </div>
+      )}
+      {node.type === "mj-divider" && (
+        <div className="py-2">
+          <hr className="border-gray-300" />
+        </div>
+      )}
+      {node.type === "mj-spacer" && (
+        <div className="py-2 text-center text-gray-400 text-xs">
+          Spacer ({node.props["height"] || "30px"})
+        </div>
+      )}
+      {!["mj-text", "mj-image", "mj-button", "mj-divider", "mj-spacer"].includes(node.type) && (
+        <div className="py-2 text-center text-gray-500 text-sm">
+          {node.type.replace("mj-", "")}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface EditBlockProps {
+  node: EditorNode;
+  parentId: string;
+  dragHandleProps?: Record<string, unknown>;
+  isDragging?: boolean;
+}
+
+function EditBlock({ node, parentId, dragHandleProps, isDragging }: EditBlockProps) {
   const [isHovered, setIsHovered] = useState(false);
   const { removeNode, selectedId, setSelectedId } = useEditorStore();
   const isSelected = selectedId === node.id;
@@ -465,7 +749,8 @@ function EditBlock({ node, parentId }: { node: EditorNode; parentId: string }) {
       className={cn(
         "group relative rounded-lg transition-all duration-150",
         isHovered && "bg-gray-50",
-        isSelected && "bg-blue-50/50 ring-2 ring-blue-200"
+        isSelected && "bg-blue-50/50 ring-2 ring-blue-200",
+        isDragging && "opacity-50"
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -479,8 +764,9 @@ function EditBlock({ node, parentId }: { node: EditorNode; parentId: string }) {
         )}
       >
         <button
-          className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600 cursor-grab"
+          className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing touch-none"
           title="Drag to reorder"
+          {...dragHandleProps}
         >
           <GripVertical className="w-4 h-4" />
         </button>
