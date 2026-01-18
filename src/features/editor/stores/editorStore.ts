@@ -414,14 +414,21 @@ export const selectHeadSettings = (state: EditorStore) => state.headSettings;
 // ============ Derived State Hooks ============
 
 // Get selected node
+// Note: We subscribe to document to ensure re-render when node props change
 export function useSelectedNode(): EditorNode | null {
   const selectedId = useEditorStore(selectSelectedId);
+  // Subscribe to document changes so we re-render when node props are updated
+  const document = useEditorStore(selectDocument);
   const findNode = useEditorStore((s) => s.findNode);
+  // findNode uses the latest document state
   return selectedId ? findNode(selectedId) : null;
 }
 
 // Get node by ID
+// Note: We subscribe to document to ensure re-render when node props change
 export function useNode(nodeId: string | null): EditorNode | null {
+  // Subscribe to document changes so we re-render when node props are updated
+  const document = useEditorStore(selectDocument);
   const findNode = useEditorStore((s) => s.findNode);
   return nodeId ? findNode(nodeId) : null;
 }
