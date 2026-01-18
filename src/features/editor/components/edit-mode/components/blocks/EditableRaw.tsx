@@ -1,16 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useEditorStore } from "@/stores/editor";
-import { EditorNode } from "@/types/editor";
+import { useEditorStore } from "@/features/editor/stores";
+import type { EditorNode } from "@/features/editor/types";
 import { cn } from "@/lib/utils";
-import { Table } from "lucide-react";
+import { Code } from "lucide-react";
 
-interface EditableTableProps {
+interface EditableRawProps {
   node: EditorNode;
 }
 
-export function EditableTable({ node }: EditableTableProps) {
+export function EditableRaw({ node }: EditableRawProps) {
   const { updateNodeContent, selectedId } = useEditorStore();
   const isSelected = selectedId === node.id;
   const [isEditing, setIsEditing] = useState(false);
@@ -25,15 +25,15 @@ export function EditableTable({ node }: EditableTableProps) {
     return (
       <div className="py-2">
         <div className="border rounded-lg overflow-hidden">
-          <div className="bg-gray-50 px-3 py-2 border-b flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-600">
-              <Table className="w-3 h-3 inline mr-1" />
-              Edit Table HTML
+          <div className="bg-gray-800 px-3 py-2 flex items-center justify-between">
+            <span className="text-xs font-medium text-gray-300">
+              <Code className="w-3 h-3 inline mr-1" />
+              Raw HTML
             </span>
             <div className="flex gap-2">
               <button
                 onClick={() => setIsEditing(false)}
-                className="text-xs px-2 py-1 rounded hover:bg-gray-200"
+                className="text-xs px-2 py-1 rounded text-gray-300 hover:bg-gray-700"
               >
                 Cancel
               </button>
@@ -48,8 +48,8 @@ export function EditableTable({ node }: EditableTableProps) {
           <textarea
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
-            className="w-full h-48 p-3 text-xs font-mono outline-none resize-none"
-            placeholder="<tr><td>Cell 1</td><td>Cell 2</td></tr>"
+            className="w-full h-48 p-3 text-xs font-mono bg-gray-900 text-gray-100 outline-none resize-none"
+            placeholder="<!-- Your HTML here -->"
           />
         </div>
       </div>
@@ -65,18 +65,16 @@ export function EditableTable({ node }: EditableTableProps) {
         )}
         onClick={() => setIsEditing(true)}
       >
-        <div className="bg-gray-50 px-3 py-2 border-b">
-          <span className="text-xs font-medium text-gray-600">
-            <Table className="w-3 h-3 inline mr-1" />
-            Table
+        <div className="bg-gray-800 px-3 py-2">
+          <span className="text-xs font-medium text-gray-300">
+            <Code className="w-3 h-3 inline mr-1" />
+            Raw HTML
           </span>
         </div>
-        <div className="p-3">
-          {node.content ? (
-            <table className="w-full text-sm" dangerouslySetInnerHTML={{ __html: node.content }} />
-          ) : (
-            <div className="text-gray-400 text-sm text-center py-4">Click to edit table</div>
-          )}
+        <div className="p-3 bg-gray-900">
+          <pre className="text-xs font-mono text-gray-400 whitespace-pre-wrap max-h-24 overflow-hidden">
+            {node.content || "<!-- Click to edit -->"}
+          </pre>
         </div>
       </div>
     </div>

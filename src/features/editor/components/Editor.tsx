@@ -30,10 +30,9 @@ import { Toolbar } from "./toolbar";
 import { Sidebar } from "./sidebar";
 import { Canvas } from "./canvas";
 import { Properties } from "./properties";
-// Import other mode components from original location (to be migrated later)
-import { EditMode } from "@/components/editor/EditMode";
-import { Preview } from "@/components/preview/Preview";
-import { CodeEditor } from "@/components/editor/CodeEditor";
+import { EditMode } from "./edit-mode";
+import { Preview } from "./preview";
+import { CodeEditor } from "./code-editor";
 
 // Direct icon imports for better performance
 import {

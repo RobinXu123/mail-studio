@@ -1,8 +1,8 @@
 "use client";
 
-import { useEditorStore } from "@/stores/editor";
-import { EditorNode } from "@/types/editor";
-import { generateId } from "@/lib/mjml/schema";
+import { useEditorStore } from "@/features/editor/stores";
+import type { EditorNode } from "@/features/editor/types";
+import { generateId } from "@/features/editor/lib/mjml";
 import { cn } from "@/lib/utils";
 import { Share2, Plus, Trash2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";

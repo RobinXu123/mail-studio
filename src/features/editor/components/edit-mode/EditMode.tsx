@@ -1,9 +1,15 @@
+/**
+ * Edit Mode - Document-style email editor
+ *
+ * Provides a Google Docs-like editing experience for MJML emails.
+ */
+
 "use client";
 
 import { useState } from "react";
-import { useEditorStore } from "@/stores/editor";
-import { EditorNode, MJMLComponentType } from "@/types/editor";
-import { generateId } from "@/lib/mjml/schema";
+import { useEditorStore } from "@/features/editor/stores";
+import type { EditorNode, MJMLComponentType } from "@/features/editor/types";
+import { generateId } from "@/features/editor/lib/mjml";
 import {
   DndContext,
   DragOverlay,
@@ -20,6 +26,7 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
+  arrayMove,
 } from "@dnd-kit/sortable";
 import { LayoutGrid } from "lucide-react";
 import { SortableSectionContainer, AddSectionButton } from "./components";
@@ -27,7 +34,7 @@ import { SortableSectionContainer, AddSectionButton } from "./components";
 export function EditMode() {
   const document = useEditorStore((s) => s.document);
   const addChildNode = useEditorStore((s) => s.addChildNode);
-  const moveNode = useEditorStore((s) => s.moveNode);
+  const updateNodeChildren = useEditorStore((s) => s.updateNodeChildren);
   const [activeSectionId, setActiveSectionId] = useState<UniqueIdentifier | null>(null);
 
   const sensors = useSensors(
@@ -49,12 +56,13 @@ export function EditMode() {
     const { active, over } = event;
     setActiveSectionId(null);
 
-    if (over && active.id !== over.id) {
+    if (over && active.id !== over.id && document.children) {
       const oldIndex = sectionIds.indexOf(active.id as string);
       const newIndex = sectionIds.indexOf(over.id as string);
 
       if (oldIndex !== -1 && newIndex !== -1) {
-        moveNode(active.id as string, document.id, newIndex);
+        const newChildren = arrayMove(document.children, oldIndex, newIndex);
+        updateNodeChildren(document.id, newChildren);
       }
     }
   };

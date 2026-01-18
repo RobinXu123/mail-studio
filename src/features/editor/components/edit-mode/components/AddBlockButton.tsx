@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useEditorStore } from "@/stores/editor";
-import { MJMLComponentType } from "@/types/editor";
+import { useEditorStore } from "@/features/editor/stores";
+import type { MJMLComponentType } from "@/features/editor/types";
 import { cn } from "@/lib/utils";
 import {
   Type,

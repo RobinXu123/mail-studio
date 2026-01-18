@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useEditorStore } from "@/stores/editor";
-import { EditorNode } from "@/types/editor";
-import { generateId } from "@/lib/mjml/schema";
+import { useEditorStore } from "@/features/editor/stores";
+import type { EditorNode } from "@/features/editor/types";
+import { generateId } from "@/features/editor/lib/mjml";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
 

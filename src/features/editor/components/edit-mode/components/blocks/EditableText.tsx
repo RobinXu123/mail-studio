@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useState, useRef, useEffect } from "react";
-import { useEditorStore } from "@/stores/editor";
-import { EditorNode } from "@/types/editor";
+import { useEditorStore } from "@/features/editor/stores";
+import type { EditorNode } from "@/features/editor/types";
 import { cn } from "@/lib/utils";
 import { Bold, Italic, Underline, Link, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
 

@@ -1,9 +1,12 @@
+/**
+ * Preview - Email preview component with desktop/mobile views
+ */
+
 "use client";
 
 import { useMemo } from "react";
-import { useEditorStore } from "@/stores/editor";
-import { useUIStore } from "@/stores/ui";
-import { compileDocument } from "@/lib/mjml/compiler";
+import { useEditorStore, useUIStore } from "@/features/editor/stores";
+import { compileDocument } from "@/features/editor/lib/mjml";
 import { cn } from "@/lib/utils";
 
 export function Preview() {

@@ -2,7 +2,7 @@
  * Shared types for Edit Mode components
  */
 
-import type { EditorNode } from "@/types/editor";
+import type { EditorNode } from "@/features/editor/types";
 
 export interface DragHandleProps {
   [key: string]: unknown;

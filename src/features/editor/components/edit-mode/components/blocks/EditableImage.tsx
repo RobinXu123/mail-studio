@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useEditorStore } from "@/stores/editor";
-import { EditorNode } from "@/types/editor";
+import { useEditorStore } from "@/features/editor/stores";
+import type { EditorNode } from "@/features/editor/types";
 import { Image } from "lucide-react";
 
 interface EditableImageProps {

@@ -1,6 +1,6 @@
 "use client";
 
-import { EditorNode } from "@/types/editor";
+import type { EditorNode } from "@/features/editor/types";
 
 interface EditableDividerProps {
   node: EditorNode;

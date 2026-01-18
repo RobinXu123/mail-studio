@@ -1,10 +1,14 @@
+/**
+ * Code Editor - Monaco-based MJML source code editor
+ */
+
 "use client";
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import Editor, { OnMount, BeforeMount } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
-import { useEditorStore } from "@/stores/editor";
-import { generateMjml, parseMjmlToNode } from "@/lib/mjml/compiler";
+import { useEditorStore } from "@/features/editor/stores";
+import { generateMjml, parseMjmlToNode } from "@/features/editor/lib/mjml";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Check, AlertCircle, Loader2 } from "lucide-react";
 
