@@ -4,12 +4,14 @@
 
 "use client";
 
-import { memo } from "react";
+import { memo, useContext } from "react";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { useDndContext } from "@dnd-kit/core";
 import type { EditorNode, MJMLComponentType } from "@/features/editor/types";
 import { DroppableContainer } from "./DroppableContainer";
 import { EmptyDropZone } from "./EmptyDropZone";
 import { CanvasNode } from "./CanvasNode";
+import { DragStateContext } from "./DragStateContext";
 
 interface ColumnNodeProps {
   node: EditorNode;
@@ -32,6 +34,20 @@ const columnAcceptTypes: MJMLComponentType[] = [
 export const ColumnNode = memo(function ColumnNode({ node }: ColumnNodeProps) {
   const bgColor = node.props["background-color"] as string;
   const padding = (node.props["padding"] as string) || "10px";
+  const dragState = useContext(DragStateContext);
+  const { active } = useDndContext();
+  const hasChildren = node.children && node.children.length > 0;
+
+  // Check if we're dragging a content component
+  const activeData = active?.data.current;
+  const activeType = (activeData?.componentType || activeData?.nodeType) as
+    | MJMLComponentType
+    | undefined;
+  const isDraggingContent =
+    dragState.isDragging && activeType && columnAcceptTypes.includes(activeType);
+
+  // Show drop zone when empty OR when dragging content
+  const showDropZone = !hasChildren || isDraggingContent;
 
   // Note: flex/width properties are applied to the CanvasNode wrapper for proper flex layout
   return (
@@ -57,12 +73,13 @@ export const ColumnNode = memo(function ColumnNode({ node }: ColumnNodeProps) {
             />
           ))}
         </SortableContext>
-        {(!node.children || node.children.length === 0) && (
+        {showDropZone && (
           <EmptyDropZone
             nodeId={node.id}
-            message="Drop content here"
+            message={hasChildren ? "Drop here to add" : "Drop content here"}
             small
             acceptTypes={columnAcceptTypes}
+            index={node.children?.length ?? 0}
           />
         )}
       </div>
