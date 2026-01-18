@@ -32,6 +32,7 @@ import {
 import { useEditorStore, useUIStore, useUndoRedo } from "@/features/editor/stores";
 import { compileDocument, generateMjml } from "@/features/editor/lib/mjml/compiler";
 import { HeadSettingsButton } from "./HeadSettingsButton";
+import { SendEmailDialog } from "./SendEmailDialog";
 
 function downloadFile(content: string, filename: string, mimeType: string) {
   const blob = new Blob([content], { type: mimeType });
@@ -246,6 +247,9 @@ export const Toolbar = memo(function Toolbar() {
 
           {/* Head Settings */}
           <HeadSettingsButton />
+
+          {/* Send Email */}
+          <SendEmailDialog />
 
           {/* Export */}
           <DropdownMenu>
