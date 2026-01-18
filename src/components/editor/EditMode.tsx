@@ -22,6 +22,8 @@ import {
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
+  horizontalListSortingStrategy,
+  arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -265,8 +267,47 @@ interface EditSectionContainerProps {
 
 function EditSectionContainer({ node, dragHandleProps, isDragging }: EditSectionContainerProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const { selectedId, setSelectedId, removeNode, duplicateNode, addChildNode } = useEditorStore();
+  const { selectedId, setSelectedId, removeNode, duplicateNode, addChildNode, updateNodeChildren } =
+    useEditorStore();
   const isSelected = selectedId === node.id;
+  const [activeColumnId, setActiveColumnId] = useState<UniqueIdentifier | null>(null);
+
+  const columnSensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const columnIds = node.children?.map((col) => col.id) || [];
+
+  const handleColumnDragStart = (event: DragStartEvent) => {
+    setActiveColumnId(event.active.id);
+  };
+
+  const handleColumnDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveColumnId(null);
+
+    if (over && active.id !== over.id) {
+      const oldIndex = columnIds.indexOf(active.id as string);
+      const newIndex = columnIds.indexOf(over.id as string);
+
+      if (oldIndex !== -1 && newIndex !== -1 && node.children) {
+        // Use arrayMove for correct reordering in both directions
+        const newChildren = arrayMove(node.children, oldIndex, newIndex);
+        updateNodeChildren(node.id, newChildren);
+      }
+    }
+  };
+
+  const activeColumn = activeColumnId
+    ? node.children?.find((col) => col.id === activeColumnId)
+    : null;
 
   // Handle special section types
   if (node.type === "mj-hero") {
@@ -391,19 +432,38 @@ function EditSectionContainer({ node, dragHandleProps, isDragging }: EditSection
         }}
       >
         {columnCount > 0 ? (
-          <div
-            className={cn(
-              "grid gap-2 p-2",
-              columnCount === 1 && "grid-cols-1",
-              columnCount === 2 && "grid-cols-2",
-              columnCount === 3 && "grid-cols-3",
-              columnCount >= 4 && "grid-cols-4"
-            )}
+          <DndContext
+            sensors={columnSensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleColumnDragStart}
+            onDragEnd={handleColumnDragEnd}
           >
-            {node.children?.map((column) => (
-              <EditColumnContainer key={column.id} node={column} parentId={node.id} />
-            ))}
-          </div>
+            <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
+              <div
+                className={cn(
+                  "grid gap-2 p-2",
+                  columnCount === 1 && "grid-cols-1",
+                  columnCount === 2 && "grid-cols-2",
+                  columnCount === 3 && "grid-cols-3",
+                  columnCount >= 4 && "grid-cols-4"
+                )}
+              >
+                {node.children?.map((column) => (
+                  <SortableEditColumnContainer key={column.id} node={column} parentId={node.id} />
+                ))}
+              </div>
+            </SortableContext>
+            <DragOverlay>
+              {activeColumn ? (
+                <div className="bg-white rounded-lg shadow-xl border-2 border-blue-400 opacity-90 p-4">
+                  <div className="text-center text-gray-500 text-sm">
+                    <Columns className="w-5 h-5 mx-auto mb-1" />
+                    Column ({activeColumn.children?.length || 0} blocks)
+                  </div>
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         ) : (
           <div className="flex items-center justify-center h-20 text-gray-400 text-sm">
             <button
@@ -419,6 +479,30 @@ function EditSectionContainer({ node, dragHandleProps, isDragging }: EditSection
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// Sortable wrapper for EditColumnContainer
+function SortableEditColumnContainer({ node, parentId }: { node: EditorNode; parentId: string }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: node.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <EditColumnContainer
+        node={node}
+        parentId={parentId}
+        dragHandleProps={{ ...attributes, ...listeners }}
+        isDragging={isDragging}
+      />
     </div>
   );
 }
@@ -510,9 +594,22 @@ function EditHeroContainer({ node, dragHandleProps }: EditHeroContainerProps) {
   );
 }
 
-function EditColumnContainer({ node, parentId }: { node: EditorNode; parentId: string }) {
+interface EditColumnContainerProps {
+  node: EditorNode;
+  parentId: string;
+  dragHandleProps?: Record<string, unknown>;
+  isDragging?: boolean;
+}
+
+function EditColumnContainer({
+  node,
+  parentId,
+  dragHandleProps,
+  isDragging: isColumnDragging,
+}: EditColumnContainerProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const { selectedId, setSelectedId, removeNode, moveNode, findNode } = useEditorStore();
+  const { selectedId, setSelectedId, removeNode, findNode, duplicateNode, updateNodeChildren } =
+    useEditorStore();
   const isSelected = selectedId === node.id;
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
 
@@ -554,8 +651,10 @@ function EditColumnContainer({ node, parentId }: { node: EditorNode; parentId: s
       const oldIndex = childIds.indexOf(active.id as string);
       const newIndex = childIds.indexOf(over.id as string);
 
-      if (oldIndex !== -1 && newIndex !== -1) {
-        moveNode(active.id as string, node.id, newIndex);
+      if (oldIndex !== -1 && newIndex !== -1 && node.children) {
+        // Use arrayMove for correct reordering in both directions
+        const newChildren = arrayMove(node.children, oldIndex, newIndex);
+        updateNodeChildren(node.id, newChildren);
       }
     }
   };
@@ -579,7 +678,13 @@ function EditColumnContainer({ node, parentId }: { node: EditorNode; parentId: s
           !isSelected &&
           "ring-1 ring-white/15 ring-inset bg-white/5",
         // Only add light background when parent doesn't have a colored background and not hovered/selected
-        !hasColoredParent && bgColor === "transparent" && !isHovered && !isSelected && "bg-white/50"
+        !hasColoredParent &&
+          bgColor === "transparent" &&
+          !isHovered &&
+          !isSelected &&
+          "bg-white/50",
+        // Column dragging state
+        isColumnDragging && "opacity-50"
       )}
       style={{
         backgroundColor: bgColor !== "transparent" ? bgColor : undefined,
@@ -593,7 +698,41 @@ function EditColumnContainer({ node, parentId }: { node: EditorNode; parentId: s
     >
       {/* Column Controls */}
       {(isHovered || isSelected) && (
-        <div className="absolute -top-2 right-1 z-10">
+        <div className="absolute -top-2 right-1 z-10 flex items-center gap-1">
+          {/* Drag Handle */}
+          {dragHandleProps && (
+            <button
+              className={cn(
+                "p-1 rounded shadow-sm border cursor-grab active:cursor-grabbing touch-none",
+                hasColoredParent
+                  ? "bg-white/90 border-white/50 hover:bg-white"
+                  : "bg-white border-gray-200 hover:bg-gray-50"
+              )}
+              title="Drag to reorder column"
+              {...dragHandleProps}
+            >
+              <GripVertical
+                className={cn("w-3 h-3", hasColoredParent ? "text-gray-700" : "text-gray-500")}
+              />
+            </button>
+          )}
+          {/* Duplicate Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              duplicateNode(node.id);
+            }}
+            className={cn(
+              "p-1 rounded shadow-sm border",
+              hasColoredParent
+                ? "bg-white/90 border-white/50 hover:bg-white"
+                : "bg-white border-gray-200 hover:bg-gray-50"
+            )}
+            title="Duplicate Column"
+          >
+            <Copy className={cn("w-3 h-3", hasColoredParent ? "text-gray-700" : "text-gray-500")} />
+          </button>
+          {/* Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
