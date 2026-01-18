@@ -5,49 +5,74 @@
 
 "use client";
 
-import { memo } from "react";
-import { Share2 } from "lucide-react";
+import { memo, type ReactNode } from "react";
+import {
+  Share2,
+  Github,
+  Facebook,
+  Twitter,
+  Linkedin,
+  Instagram,
+  Youtube,
+  Globe,
+  Pin,
+  Ghost,
+  Video,
+  Cloud,
+  Dribbble,
+} from "lucide-react";
 import type { EditorNode } from "@/features/editor/types";
 
 interface SocialNodeProps {
   node: EditorNode;
 }
 
-// Social platform configurations with icons and colors
-const socialPlatforms: Record<string, { label: string; color: string; icon: string }> = {
-  facebook: { label: "Facebook", color: "#1877f2", icon: "f" },
-  "facebook-noshare": { label: "Facebook", color: "#1877f2", icon: "f" },
-  twitter: { label: "Twitter", color: "#1da1f2", icon: "𝕏" },
-  "twitter-noshare": { label: "Twitter", color: "#1da1f2", icon: "𝕏" },
-  x: { label: "X", color: "#000000", icon: "𝕏" },
-  "x-noshare": { label: "X", color: "#000000", icon: "𝕏" },
-  linkedin: { label: "LinkedIn", color: "#0a66c2", icon: "in" },
-  "linkedin-noshare": { label: "LinkedIn", color: "#0a66c2", icon: "in" },
-  instagram: { label: "Instagram", color: "#e4405f", icon: "📷" },
-  youtube: { label: "YouTube", color: "#ff0000", icon: "▶" },
-  github: { label: "GitHub", color: "#333333", icon: "⌥" },
-  "github-noshare": { label: "GitHub", color: "#333333", icon: "⌥" },
-  pinterest: { label: "Pinterest", color: "#bd081c", icon: "P" },
-  "pinterest-noshare": { label: "Pinterest", color: "#bd081c", icon: "P" },
-  snapchat: { label: "Snapchat", color: "#fffc00", icon: "👻" },
-  vimeo: { label: "Vimeo", color: "#1ab7ea", icon: "V" },
-  tumblr: { label: "Tumblr", color: "#35465c", icon: "t" },
-  "tumblr-noshare": { label: "Tumblr", color: "#35465c", icon: "t" },
-  soundcloud: { label: "SoundCloud", color: "#ff5500", icon: "☁" },
-  dribbble: { label: "Dribbble", color: "#ea4c89", icon: "🏀" },
-  web: { label: "Web", color: "#4a4a4a", icon: "🌐" },
-  medium: { label: "Medium", color: "#00ab6c", icon: "M" },
+// Social platform configurations with lucide-react icons
+const socialPlatforms: Record<string, { label: string; color: string; icon: ReactNode }> = {
+  facebook: { label: "Facebook", color: "#1877f2", icon: <Facebook /> },
+  "facebook-noshare": { label: "Facebook", color: "#1877f2", icon: <Facebook /> },
+  twitter: { label: "Twitter", color: "#1da1f2", icon: <Twitter /> },
+  "twitter-noshare": { label: "Twitter", color: "#1da1f2", icon: <Twitter /> },
+  x: { label: "X", color: "#000000", icon: <Twitter /> },
+  "x-noshare": { label: "X", color: "#000000", icon: <Twitter /> },
+  linkedin: { label: "LinkedIn", color: "#0a66c2", icon: <Linkedin /> },
+  "linkedin-noshare": { label: "LinkedIn", color: "#0a66c2", icon: <Linkedin /> },
+  instagram: { label: "Instagram", color: "#e4405f", icon: <Instagram /> },
+  youtube: { label: "YouTube", color: "#ff0000", icon: <Youtube /> },
+  github: { label: "GitHub", color: "#333333", icon: <Github /> },
+  "github-noshare": { label: "GitHub", color: "#333333", icon: <Github /> },
+  pinterest: { label: "Pinterest", color: "#bd081c", icon: <Pin /> },
+  "pinterest-noshare": { label: "Pinterest", color: "#bd081c", icon: <Pin /> },
+  snapchat: { label: "Snapchat", color: "#fffc00", icon: <Ghost /> },
+  vimeo: { label: "Vimeo", color: "#1ab7ea", icon: <Video /> },
+  tumblr: { label: "Tumblr", color: "#35465c", icon: <Globe /> },
+  "tumblr-noshare": { label: "Tumblr", color: "#35465c", icon: <Globe /> },
+  soundcloud: { label: "SoundCloud", color: "#ff5500", icon: <Cloud /> },
+  dribbble: { label: "Dribbble", color: "#ea4c89", icon: <Dribbble /> },
+  web: { label: "Web", color: "#4a4a4a", icon: <Globe /> },
+  medium: { label: "Medium", color: "#00ab6c", icon: <Globe /> },
+};
+
+// Map align prop to CSS justify-content
+const alignToJustify: Record<string, string> = {
+  left: "justify-start",
+  center: "justify-center",
+  right: "justify-end",
 };
 
 export const SocialNode = memo(function SocialNode({ node }: SocialNodeProps) {
   const children = node.children || [];
   const mode = (node.props.mode as string) || "horizontal";
+  const align = (node.props.align as string) || "center";
   const iconSize = (node.props["icon-size"] as string) || "20px";
   const iconPadding = (node.props["icon-padding"] as string) || "4px";
 
   // Parse icon size for display
   const sizeNum = parseInt(iconSize, 10) || 20;
   const displaySize = Math.max(24, Math.min(48, sizeNum));
+
+  // Get alignment class
+  const justifyClass = alignToJustify[align] || "justify-center";
 
   return (
     <div className="py-2">
@@ -61,8 +86,8 @@ export const SocialNode = memo(function SocialNode({ node }: SocialNodeProps) {
           <div
             className={
               mode === "vertical"
-                ? "flex flex-col items-start gap-2"
-                : "flex flex-wrap items-center gap-2"
+                ? `flex flex-col items-start gap-2 ${justifyClass}`
+                : `flex flex-wrap items-center gap-2 ${justifyClass}`
             }
           >
             {children.map((child) => {
@@ -70,7 +95,7 @@ export const SocialNode = memo(function SocialNode({ node }: SocialNodeProps) {
               const platform = socialPlatforms[platformName] || {
                 label: platformName,
                 color: "#666666",
-                icon: "?",
+                icon: <Globe />,
               };
               const customSrc = child.props.src as string;
 
@@ -89,12 +114,11 @@ export const SocialNode = memo(function SocialNode({ node }: SocialNodeProps) {
                     />
                   ) : (
                     <div
-                      className="rounded flex items-center justify-center text-white font-bold shadow-sm"
+                      className="rounded flex items-center justify-center text-white shadow-sm [&>svg]:w-1/2 [&>svg]:h-1/2"
                       style={{
                         backgroundColor: platform.color,
                         width: displaySize,
                         height: displaySize,
-                        fontSize: displaySize * 0.5,
                       }}
                     >
                       {platform.icon}
