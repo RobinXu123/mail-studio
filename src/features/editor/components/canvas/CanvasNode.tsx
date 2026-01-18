@@ -14,7 +14,15 @@ import type { EditorNode, MJMLComponentType } from "@/features/editor/types";
 import { cn } from "@/lib/utils";
 import { SectionNode } from "./SectionNode";
 import { ColumnNode } from "./ColumnNode";
-import { TextNode, ImageNode, ButtonNode, DividerNode, SpacerNode, GenericNode } from "./nodes";
+import {
+  TextNode,
+  ImageNode,
+  ButtonNode,
+  DividerNode,
+  SpacerNode,
+  TableNode,
+  GenericNode,
+} from "./nodes";
 
 interface CanvasNodeProps {
   node: EditorNode;
@@ -126,6 +134,8 @@ export const CanvasNode = memo(function CanvasNode({
         return <DividerNode node={node} />;
       case "mj-spacer":
         return <SpacerNode node={node} />;
+      case "mj-table":
+        return <TableNode node={node} />;
       default:
         return <GenericNode node={node} />;
     }
