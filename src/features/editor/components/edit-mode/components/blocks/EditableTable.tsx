@@ -827,7 +827,21 @@ function EditableCell({
   const handleDoubleClick = useCallback(() => {
     setIsEditing(true);
     onSelect();
-  }, [onSelect]);
+    // Set content and focus after entering edit mode
+    requestAnimationFrame(() => {
+      if (cellRef.current) {
+        cellRef.current.innerHTML = cell.content || "";
+        cellRef.current.focus();
+        // Place cursor at end
+        const range = document.createRange();
+        const sel = window.getSelection();
+        range.selectNodeContents(cellRef.current);
+        range.collapse(false);
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+      }
+    });
+  }, [onSelect, cell.content]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
