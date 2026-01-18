@@ -20,9 +20,22 @@ export function EditableButton({ node }: EditableButtonProps) {
   const textColor = (node.props["color"] as string) || "#ffffff";
   const borderRadius = (node.props["border-radius"] as string) || "6px";
   const align = (node.props["align"] as string) || "center";
+  const containerBgColor = node.props["container-background-color"] as string;
+  const fontStyle = node.props["font-style"] as string;
+  const fontFamily = node.props["font-family"] as string;
+  const textDecoration = (node.props["text-decoration"] as string) || "none";
+  const textTransform = node.props["text-transform"] as string;
+  const letterSpacing = node.props["letter-spacing"] as string;
+  const lineHeight = node.props["line-height"] as string;
 
   return (
-    <div className="relative py-2" style={{ textAlign: align as "left" | "center" | "right" }}>
+    <div
+      className="relative py-2"
+      style={{
+        textAlign: align as "left" | "center" | "right",
+        backgroundColor: containerBgColor,
+      }}
+    >
       {(showToolbar || isSelected) && (
         <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 p-1 bg-white rounded-lg shadow-lg border border-gray-200">
           <select
@@ -86,6 +99,12 @@ export function EditableButton({ node }: EditableButtonProps) {
           backgroundColor: bgColor,
           color: textColor,
           borderRadius,
+          fontStyle,
+          fontFamily,
+          textDecoration,
+          textTransform: textTransform as "none" | "capitalize" | "uppercase" | "lowercase",
+          letterSpacing,
+          lineHeight,
         }}
       />
     </div>

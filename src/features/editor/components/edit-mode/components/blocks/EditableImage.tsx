@@ -16,9 +16,16 @@ export function EditableImage({ node }: EditableImageProps) {
   const src = node.props["src"] as string;
   const alt = (node.props["alt"] as string) || "";
   const align = (node.props["align"] as string) || "center";
+  const containerBgColor = node.props["container-background-color"] as string;
 
   return (
-    <div className="py-2" style={{ textAlign: align as "left" | "center" | "right" }}>
+    <div
+      className="py-2"
+      style={{
+        textAlign: align as "left" | "center" | "right",
+        backgroundColor: containerBgColor,
+      }}
+    >
       {src ? (
         <img
           src={src}

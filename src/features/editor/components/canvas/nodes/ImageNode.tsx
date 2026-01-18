@@ -17,10 +17,12 @@ export const ImageNode = memo(function ImageNode({ node }: ImageNodeProps) {
   const padding = node.props["padding"] as string;
   const borderRadius = node.props["border-radius"] as string;
   const align = (node.props["align"] as string) || "center";
+  const containerBgColor = node.props["container-background-color"] as string;
 
   return (
     <div
       style={{
+        backgroundColor: containerBgColor,
         padding,
         textAlign: align as "left" | "center" | "right",
       }}

@@ -19,15 +19,30 @@ export const TextNode = memo(function TextNode({ node }: TextNodeProps) {
   const isSelected = selectedId === node.id;
   const [isEditing, setIsEditing] = useState(false);
 
-  const style = useMemo(
+  const containerStyle = useMemo(
+    () => ({
+      backgroundColor: node.props["container-background-color"] as string,
+      padding: node.props["padding"] as string,
+    }),
+    [node.props]
+  );
+
+  const textStyle = useMemo(
     () => ({
       color: node.props["color"] as string,
       fontSize: node.props["font-size"] as string,
       fontWeight: node.props["font-weight"] as string,
       fontFamily: node.props["font-family"] as string,
+      fontStyle: node.props["font-style"] as string,
       lineHeight: node.props["line-height"] as string,
+      letterSpacing: node.props["letter-spacing"] as string,
       textAlign: node.props["align"] as "left" | "center" | "right",
-      padding: node.props["padding"] as string,
+      textDecoration: node.props["text-decoration"] as string,
+      textTransform: node.props["text-transform"] as
+        | "none"
+        | "capitalize"
+        | "uppercase"
+        | "lowercase",
     }),
     [node.props]
   );
@@ -45,18 +60,20 @@ export const TextNode = memo(function TextNode({ node }: TextNodeProps) {
   );
 
   return (
-    <div
-      contentEditable={isEditing}
-      suppressContentEditableWarning
-      onDoubleClick={handleDoubleClick}
-      onBlur={handleBlur}
-      className={cn(
-        "outline-none min-h-[1em] transition-all",
-        isEditing && "cursor-text bg-blue-50/50 ring-1 ring-blue-200",
-        !isEditing && isSelected && "cursor-pointer"
-      )}
-      style={style}
-      dangerouslySetInnerHTML={{ __html: node.content || "" }}
-    />
+    <div style={containerStyle}>
+      <div
+        contentEditable={isEditing}
+        suppressContentEditableWarning
+        onDoubleClick={handleDoubleClick}
+        onBlur={handleBlur}
+        className={cn(
+          "outline-none min-h-[1em] transition-all",
+          isEditing && "cursor-text bg-blue-50/50 ring-1 ring-blue-200",
+          !isEditing && isSelected && "cursor-pointer"
+        )}
+        style={textStyle}
+        dangerouslySetInnerHTML={{ __html: node.content || "" }}
+      />
+    </div>
   );
 });

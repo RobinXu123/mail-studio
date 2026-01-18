@@ -45,17 +45,29 @@ export function EditableText({ node }: EditableTextProps) {
     handleInput();
   };
 
+  const containerStyle = {
+    backgroundColor: node.props["container-background-color"] as string,
+  };
+
   const style = {
     fontSize: (node.props["font-size"] as string) || "16px",
     fontWeight: node.props["font-weight"] as string,
     fontFamily: node.props["font-family"] as string,
+    fontStyle: node.props["font-style"] as string,
     color: (node.props["color"] as string) || "#333",
     lineHeight: (node.props["line-height"] as string) || "1.6",
+    letterSpacing: node.props["letter-spacing"] as string,
     textAlign: node.props["align"] as "left" | "center" | "right",
+    textDecoration: node.props["text-decoration"] as string,
+    textTransform: node.props["text-transform"] as
+      | "none"
+      | "capitalize"
+      | "uppercase"
+      | "lowercase",
   };
 
   return (
-    <div className="relative">
+    <div className="relative" style={containerStyle}>
       {(showToolbar || isSelected) && (
         <div className="absolute -top-10 left-0 z-50 flex items-center gap-1 p-1 bg-white rounded-lg shadow-lg border border-gray-200">
           <button

@@ -21,6 +21,7 @@ export const ButtonNode = memo(function ButtonNode({ node }: ButtonNodeProps) {
 
   const containerStyle = useMemo(
     () => ({
+      backgroundColor: node.props["container-background-color"] as string,
       padding: node.props["padding"] as string,
       textAlign: (node.props["align"] as "left" | "center" | "right") || "center",
     }),
@@ -33,10 +34,19 @@ export const ButtonNode = memo(function ButtonNode({ node }: ButtonNodeProps) {
       color: (node.props["color"] as string) || "#ffffff",
       fontSize: (node.props["font-size"] as string) || "16px",
       fontWeight: node.props["font-weight"] as string,
+      fontStyle: node.props["font-style"] as string,
+      fontFamily: node.props["font-family"] as string,
       borderRadius: (node.props["border-radius"] as string) || "6px",
       padding: "15px 30px",
       display: "inline-block",
-      textDecoration: "none",
+      textDecoration: (node.props["text-decoration"] as string) || "none",
+      textTransform: node.props["text-transform"] as
+        | "none"
+        | "capitalize"
+        | "uppercase"
+        | "lowercase",
+      letterSpacing: node.props["letter-spacing"] as string,
+      lineHeight: node.props["line-height"] as string,
       cursor: "pointer",
     }),
     [node.props]

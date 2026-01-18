@@ -13,11 +13,12 @@ interface SpacerNodeProps {
 
 export const SpacerNode = memo(function SpacerNode({ node }: SpacerNodeProps) {
   const height = (node.props["height"] as string) || "30px";
+  const containerBgColor = node.props["container-background-color"] as string;
 
   return (
     <div
       className="bg-muted/30 border border-dashed border-muted-foreground/20 flex items-center justify-center"
-      style={{ height }}
+      style={{ height, backgroundColor: containerBgColor }}
     >
       <span className="text-xs text-muted-foreground">Spacer ({height})</span>
     </div>

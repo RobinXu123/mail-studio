@@ -14,6 +14,7 @@ interface DividerNodeProps {
 export const DividerNode = memo(function DividerNode({ node }: DividerNodeProps) {
   const style = useMemo(
     () => ({
+      backgroundColor: node.props["container-background-color"] as string,
       padding: (node.props["padding"] as string) || "10px 25px",
     }),
     [node.props]

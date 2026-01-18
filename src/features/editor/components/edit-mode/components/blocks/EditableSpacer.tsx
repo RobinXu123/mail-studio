@@ -9,9 +9,13 @@ interface EditableSpacerProps {
 
 export function EditableSpacer({ node }: EditableSpacerProps) {
   const height = (node.props["height"] as string) || "30px";
+  const containerBgColor = node.props["container-background-color"] as string;
 
   return (
-    <div className="flex items-center justify-center text-gray-400 text-xs" style={{ height }}>
+    <div
+      className="flex items-center justify-center text-gray-400 text-xs"
+      style={{ height, backgroundColor: containerBgColor }}
+    >
       <MoveVertical className="w-3 h-3 mr-1" />
       {height}
     </div>
