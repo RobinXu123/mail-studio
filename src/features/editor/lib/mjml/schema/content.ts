@@ -93,7 +93,6 @@ export const contentComponents: Record<string, ComponentDefinition> = {
       src: "https://placehold.co/600x300/e2e8f0/64748b?text=Image",
       alt: "Image description",
       padding: "10px 25px",
-      width: "100%",
     },
     propsSchema: [
       { key: "src", label: "Image URL", type: "url", placeholder: "https://example.com/image.jpg" },
