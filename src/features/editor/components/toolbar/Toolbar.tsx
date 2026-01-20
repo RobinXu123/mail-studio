@@ -20,6 +20,7 @@ import {
   LayoutGrid,
   PenLine,
   AlertCircle,
+  FolderOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -28,6 +29,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -314,20 +316,25 @@ export const Toolbar = memo(function Toolbar() {
           {/* Send Email */}
           <SendEmailDialog />
 
-          {/* Import */}
+          {/* File Menu - Import & Export */}
           <DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="h-8">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Import
+                    <FolderOpen className="w-4 h-4 mr-2" />
+                    File
                   </Button>
                 </DropdownMenuTrigger>
               </TooltipTrigger>
-              <TooltipContent>Import Email Template</TooltipContent>
+              <TooltipContent>Import & Export</TooltipContent>
             </Tooltip>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-52">
+              {/* Import Section */}
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                <Upload className="w-3 h-3 inline mr-1.5" />
+                Import
+              </DropdownMenuLabel>
               <DropdownMenuItem onClick={handleImportMjml}>
                 <FileJson className="w-4 h-4 mr-2" />
                 Import MJML
@@ -340,23 +347,14 @@ export const Toolbar = memo(function Toolbar() {
                   Beta
                 </span>
               </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
 
-          {/* Export */}
-          <DropdownMenu>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8">
-                    <Download className="w-4 h-4 mr-2" />
-                    Export
-                  </Button>
-                </DropdownMenuTrigger>
-              </TooltipTrigger>
-              <TooltipContent>Export Email</TooltipContent>
-            </Tooltip>
-            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuSeparator />
+
+              {/* Export Section */}
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                <Download className="w-3 h-3 inline mr-1.5" />
+                Export
+              </DropdownMenuLabel>
               <DropdownMenuItem onClick={handleCopyMjml}>
                 <Copy className="w-4 h-4 mr-2" />
                 Copy MJML
@@ -365,7 +363,6 @@ export const Toolbar = memo(function Toolbar() {
                 <Copy className="w-4 h-4 mr-2" />
                 Copy HTML
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleExportMjml}>
                 <FileJson className="w-4 h-4 mr-2" />
                 Download MJML
