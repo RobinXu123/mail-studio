@@ -4,7 +4,7 @@
 
 import mjml2html from "mjml-browser";
 import type { EditorNode, HeadSettings } from "@/features/editor/types";
-import { componentDefinitions } from "@/features/editor/lib/mjml/schema";
+import { componentDefinitions, generateId } from "@/features/editor/lib/mjml/schema";
 
 // Self-closing MJML tags (components that don't have children or text content)
 const SELF_CLOSING_TAGS = ["mj-divider", "mj-spacer", "mj-image", "mj-carousel-image"];
@@ -164,21 +164,98 @@ export function compileDocument(
   return { html, mjml, errors };
 }
 
-// Parse MJML string back to EditorNode (simplified parser)
+// Parse MJML string back to EditorNode and HeadSettings
+export interface ParseMjmlResult {
+  document: EditorNode | null;
+  headSettings: HeadSettings;
+  errors: string[];
+}
+
 export function parseMjmlToNode(mjmlString: string): EditorNode | null {
+  const result = parseMjml(mjmlString);
+  return result.document;
+}
+
+export function parseMjml(mjmlString: string): ParseMjmlResult {
+  const errors: string[] = [];
+  const headSettings: HeadSettings = {
+    title: "",
+    preview: "",
+    fonts: [],
+    styles: "",
+    breakpoint: "",
+  };
+
   try {
     const parser = new DOMParser();
-    const doc = parser.parseFromString(mjmlString, "text/xml");
+    // Use text/html for better error tolerance
+    const doc = parser.parseFromString(mjmlString, "text/html");
 
-    const mjmlElement = doc.querySelector("mjml");
-    if (!mjmlElement) return null;
+    // Try to find mjml element (case-insensitive)
+    let mjmlElement = doc.querySelector("mjml");
+    if (!mjmlElement) {
+      // Try parsing as XML if HTML parsing didn't work
+      const xmlDoc = parser.parseFromString(mjmlString, "text/xml");
+      mjmlElement = xmlDoc.querySelector("mjml");
+    }
 
+    if (!mjmlElement) {
+      errors.push("No <mjml> element found");
+      return { document: null, headSettings, errors };
+    }
+
+    // Parse head settings
+    const headElement = mjmlElement.querySelector("mj-head");
+    if (headElement) {
+      // Parse title
+      const titleElement = headElement.querySelector("mj-title");
+      if (titleElement) {
+        headSettings.title = titleElement.textContent?.trim() || "";
+      }
+
+      // Parse preview
+      const previewElement = headElement.querySelector("mj-preview");
+      if (previewElement) {
+        headSettings.preview = previewElement.textContent?.trim() || "";
+      }
+
+      // Parse fonts
+      const fontElements = headElement.querySelectorAll("mj-font");
+      headSettings.fonts = Array.from(fontElements)
+        .map((el) => ({
+          name: el.getAttribute("name") || "",
+          href: el.getAttribute("href") || "",
+        }))
+        .filter((f) => f.name && f.href);
+
+      // Parse breakpoint
+      const breakpointElement = headElement.querySelector("mj-breakpoint");
+      if (breakpointElement) {
+        headSettings.breakpoint = breakpointElement.getAttribute("width") || "";
+      }
+
+      // Parse styles
+      const styleElements = headElement.querySelectorAll("mj-style");
+      const styles = Array.from(styleElements)
+        .map((el) => el.textContent?.trim() || "")
+        .filter(Boolean)
+        .join("\n");
+      // Remove default styles that are auto-generated
+      headSettings.styles = styles.replace(/\.link-nostyle\s*\{[^}]*\}/g, "").trim();
+    }
+
+    // Parse body
     const bodyElement = mjmlElement.querySelector("mj-body");
-    if (!bodyElement) return null;
+    if (!bodyElement) {
+      errors.push("No <mj-body> element found");
+      return { document: null, headSettings, errors };
+    }
 
-    return parseElement(bodyElement);
-  } catch {
-    return null;
+    const document = parseElement(bodyElement);
+    return { document, headSettings, errors };
+  } catch (e) {
+    errors.push(`Parse error: ${(e as Error).message}`);
+    return { document: null, headSettings, errors };
   }
 }
 
@@ -191,28 +268,249 @@ function parseElement(element: Element): EditorNode {
     props[attr.name] = attr.value;
   }
 
-  // Get text content (direct text nodes only)
+  // Get component definition to check if it can have children
+  const componentDef = componentDefinitions[type];
+  const canHaveChildren = componentDef?.canHaveChildren ?? false;
+
+  // Get text content (for components that have text content)
   let content: string | undefined;
-  const textNodes = Array.from(element.childNodes).filter((n) => n.nodeType === Node.TEXT_NODE);
-  if (textNodes.length > 0) {
-    content = textNodes
-      .map((n) => n.textContent?.trim())
-      .filter(Boolean)
-      .join("");
+
+  // Check if this is a component that should have HTML content (like mj-table, mj-raw)
+  if (HTML_CONTENT_TAGS.includes(type)) {
+    // Get inner HTML for these components
+    content = element.innerHTML?.trim();
+  } else {
+    // For regular components, get direct text nodes only
+    const textNodes = Array.from(element.childNodes).filter((n) => n.nodeType === Node.TEXT_NODE);
+    if (textNodes.length > 0) {
+      const textContent = textNodes
+        .map((n) => n.textContent)
+        .filter(Boolean)
+        .join("")
+        .trim();
+      if (textContent) {
+        content = textContent;
+      }
+    }
+
+    // For mj-text, also check for HTML content inside
+    if (type === "mj-text" && !content) {
+      const innerHTML = element.innerHTML?.trim();
+      // Only use innerHTML if it contains something other than child mj-* elements
+      if (innerHTML && !innerHTML.startsWith("<mj-")) {
+        content = innerHTML;
+      }
+    }
   }
 
-  // Parse children
-  const childElements = Array.from(element.children).filter((el) =>
-    el.tagName.toLowerCase().startsWith("mj-")
-  );
-
-  const children = childElements.length > 0 ? childElements.map(parseElement) : undefined;
+  // Parse children (only for components that can have children)
+  let children: EditorNode[] | undefined;
+  if (canHaveChildren) {
+    const childElements = Array.from(element.children).filter((el) =>
+      el.tagName.toLowerCase().startsWith("mj-")
+    );
+    children = childElements.length > 0 ? childElements.map(parseElement) : undefined;
+  }
 
   return {
-    id: `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    id: generateId(),
     type,
     props,
     content,
     children,
   };
+}
+
+// Parse HTML and try to extract content into MJML structure
+// Note: This is a best-effort conversion, complex HTML may not convert well
+export function parseHtmlToMjml(htmlString: string): ParseMjmlResult {
+  const errors: string[] = [];
+  const headSettings: HeadSettings = {
+    title: "",
+    preview: "",
+    fonts: [],
+    styles: "",
+    breakpoint: "",
+  };
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlString, "text/html");
+
+    // Extract title from HTML head
+    const titleElement = doc.querySelector("head title");
+    if (titleElement) {
+      headSettings.title = titleElement.textContent?.trim() || "";
+    }
+
+    // Extract body content
+    const bodyElement = doc.body;
+    if (!bodyElement) {
+      errors.push("No body element found in HTML");
+      return { document: null, headSettings, errors };
+    }
+
+    // Create a basic MJML structure from HTML content
+    const sections: EditorNode[] = [];
+
+    // Try to intelligently parse the HTML structure
+    const processNode = (node: Element): EditorNode | null => {
+      const tagName = node.tagName.toLowerCase();
+
+      // Skip script, style, and meta tags
+      if (["script", "style", "meta", "link", "head"].includes(tagName)) {
+        return null;
+      }
+
+      // Convert common HTML elements to MJML equivalents
+      if (tagName === "img") {
+        return {
+          id: generateId(),
+          type: "mj-image",
+          props: {
+            src: node.getAttribute("src") || "",
+            alt: node.getAttribute("alt") || "",
+            width: node.getAttribute("width") || "",
+          },
+        };
+      }
+
+      if (tagName === "a" && node.children.length === 0) {
+        // Link with just text - convert to button
+        return {
+          id: generateId(),
+          type: "mj-button",
+          props: {
+            href: node.getAttribute("href") || "#",
+          },
+          content: node.textContent?.trim() || "Link",
+        };
+      }
+
+      if (tagName === "hr") {
+        return {
+          id: generateId(),
+          type: "mj-divider",
+          props: {},
+        };
+      }
+
+      // Check if node has text content or children
+      const hasTextContent = node.textContent?.trim();
+      const hasElementChildren = node.children.length > 0;
+
+      // For nodes with text content but no element children, create mj-text
+      if (hasTextContent && !hasElementChildren) {
+        return {
+          id: generateId(),
+          type: "mj-text",
+          props: {},
+          content: node.innerHTML?.trim() || node.textContent?.trim() || "",
+        };
+      }
+
+      // For container elements, recursively process children
+      if (hasElementChildren) {
+        const childNodes: EditorNode[] = [];
+
+        for (const child of Array.from(node.children)) {
+          const childNode = processNode(child as Element);
+          if (childNode) {
+            childNodes.push(childNode);
+          }
+        }
+
+        // If we have children, wrap them in appropriate MJML structure
+        if (childNodes.length > 0) {
+          // Group consecutive text nodes into columns
+          return {
+            id: generateId(),
+            type: "mj-section",
+            props: {},
+            children: [
+              {
+                id: generateId(),
+                type: "mj-column",
+                props: {},
+                children: childNodes,
+              },
+            ],
+          };
+        }
+      }
+
+      return null;
+    };
+
+    // Process top-level elements
+    for (const child of Array.from(bodyElement.children)) {
+      const section = processNode(child as Element);
+      if (section) {
+        // If it's already a section, add it directly
+        if (section.type === "mj-section") {
+          sections.push(section);
+        } else {
+          // Wrap in section and column
+          sections.push({
+            id: generateId(),
+            type: "mj-section",
+            props: {},
+            children: [
+              {
+                id: generateId(),
+                type: "mj-column",
+                props: {},
+                children: [section],
+              },
+            ],
+          });
+        }
+      }
+    }
+
+    // If no sections were created, create a default one with the body content
+    if (sections.length === 0 && bodyElement.textContent?.trim()) {
+      sections.push({
+        id: generateId(),
+        type: "mj-section",
+        props: { "background-color": "#ffffff" },
+        children: [
+          {
+            id: generateId(),
+            type: "mj-column",
+            props: {},
+            children: [
+              {
+                id: generateId(),
+                type: "mj-text",
+                props: {},
+                content: bodyElement.innerHTML?.trim() || "",
+              },
+            ],
+          },
+        ],
+      });
+    }
+
+    const document: EditorNode = {
+      id: generateId(),
+      type: "mj-body",
+      props: {
+        "background-color": "#f4f4f4",
+        width: "600px",
+      },
+      children: sections,
+    };
+
+    if (sections.length === 0) {
+      errors.push("No content could be extracted from HTML");
+    } else {
+      errors.push("HTML was converted to MJML. Some formatting may have been lost.");
+    }
+
+    return { document, headSettings, errors };
+  } catch (e) {
+    errors.push(`Parse error: ${(e as Error).message}`);
+    return { document: null, headSettings, errors };
+  }
 }

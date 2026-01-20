@@ -4,7 +4,7 @@
 
 "use client";
 
-import { memo, useCallback } from "react";
+import { memo, useCallback, useRef } from "react";
 import {
   Undo2,
   Redo2,
@@ -13,11 +13,13 @@ import {
   Code2,
   Eye,
   Download,
+  Upload,
   Copy,
   FileJson,
   FileCode,
   LayoutGrid,
   PenLine,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -30,7 +32,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useEditorStore, useUIStore, useUndoRedo } from "@/features/editor/stores";
-import { compileDocument, generateMjml } from "@/features/editor/lib/mjml/compiler";
+import {
+  compileDocument,
+  generateMjml,
+  parseMjml,
+  parseHtmlToMjml,
+} from "@/features/editor/lib/mjml/compiler";
 import { HeadSettingsButton } from "./HeadSettingsButton";
 import { SendEmailDialog } from "./SendEmailDialog";
 
@@ -49,11 +56,16 @@ function downloadFile(content: string, filename: string, mimeType: string) {
 export const Toolbar = memo(function Toolbar() {
   const document = useEditorStore((s) => s.document);
   const headSettings = useEditorStore((s) => s.headSettings);
+  const setDocument = useEditorStore((s) => s.setDocument);
+  const updateHeadSettings = useEditorStore((s) => s.updateHeadSettings);
   const editorMode = useUIStore((s) => s.editorMode);
   const previewMode = useUIStore((s) => s.previewMode);
   const setEditorMode = useUIStore((s) => s.setEditorMode);
   const setPreviewMode = useUIStore((s) => s.setPreviewMode);
   const { undo, redo, canUndo, canRedo } = useUndoRedo();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const importTypeRef = useRef<"mjml" | "html">("mjml");
 
   const handleUndo = useCallback(() => {
     if (canUndo) undo();
@@ -82,6 +94,57 @@ export const Toolbar = memo(function Toolbar() {
     const { html } = compileDocument(document, headSettings);
     await navigator.clipboard.writeText(html);
   }, [document, headSettings]);
+
+  const handleImportMjml = useCallback(() => {
+    importTypeRef.current = "mjml";
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleImportHtml = useCallback(() => {
+    importTypeRef.current = "html";
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        if (!content) return;
+
+        let result;
+        if (importTypeRef.current === "mjml") {
+          result = parseMjml(content);
+        } else {
+          result = parseHtmlToMjml(content);
+        }
+
+        if (result.document) {
+          setDocument(result.document);
+          // Update head settings if any were parsed
+          if (result.headSettings) {
+            updateHeadSettings(result.headSettings);
+          }
+
+          // Show any warnings/info
+          if (result.errors.length > 0) {
+            // Use a simple alert for now, could be improved with a toast
+            alert(result.errors.join("\n"));
+          }
+        } else {
+          alert(`Import failed:\n${result.errors.join("\n")}`);
+        }
+      };
+      reader.readAsText(file);
+
+      // Reset file input so the same file can be imported again
+      event.target.value = "";
+    },
+    [setDocument, updateHeadSettings]
+  );
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -251,6 +314,35 @@ export const Toolbar = memo(function Toolbar() {
           {/* Send Email */}
           <SendEmailDialog />
 
+          {/* Import */}
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Import
+                  </Button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Import Email Template</TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={handleImportMjml}>
+                <FileJson className="w-4 h-4 mr-2" />
+                Import MJML
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleImportHtml}>
+                <FileCode className="w-4 h-4 mr-2" />
+                Import HTML
+                <span className="ml-auto text-xs text-muted-foreground flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  Beta
+                </span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {/* Export */}
           <DropdownMenu>
             <Tooltip>
@@ -284,6 +376,15 @@ export const Toolbar = memo(function Toolbar() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Hidden file input for imports */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".mjml,.html,.htm"
+            onChange={handleFileChange}
+            className="hidden"
+          />
         </div>
       </div>
     </TooltipProvider>

@@ -22,7 +22,10 @@ export {
   compileMjml,
   compileDocument,
   parseMjmlToNode,
+  parseMjml,
+  parseHtmlToMjml,
 } from "./compiler";
+export type { ParseMjmlResult } from "./compiler";
 
 // Templates
 export { templates, emptyDocument, cloneDocumentWithNewIds } from "./templates";
