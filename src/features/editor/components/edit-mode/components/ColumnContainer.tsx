@@ -101,7 +101,7 @@ export function ColumnContainer({
   return (
     <div
       className={cn(
-        "relative group min-h-[60px] rounded-lg transition-all",
+        "relative group h-full min-h-[60px] rounded-lg transition-all",
         !hasColoredParent && isSelected && "ring-2 ring-blue-300 ring-inset bg-blue-50/30",
         !hasColoredParent &&
           isHovered &&
