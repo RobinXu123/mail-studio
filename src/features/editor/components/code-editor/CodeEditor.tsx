@@ -170,7 +170,7 @@ export function CodeEditor() {
   }, []);
 
   return (
-    <div className="h-full flex flex-col bg-[#1e1e1e]">
+    <div className="h-full w-full flex flex-col bg-[#1e1e1e]">
       {/* Toolbar */}
       <div className="flex items-center justify-between px-4 py-2 bg-[#252526] border-b border-[#3c3c3c]">
         <div className="flex items-center gap-2">

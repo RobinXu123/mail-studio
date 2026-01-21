@@ -23,7 +23,7 @@ import { sortableKeyboardCoordinates, arrayMove } from "@dnd-kit/sortable";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { Button } from "@/components/ui/button";
 import { useEditorStore, useUIStore, useSelectedNode } from "@/features/editor/stores";
-import { useKeyboardShortcuts } from "@/features/editor/hooks";
+import { useKeyboardShortcuts, useIsMediumScreen } from "@/features/editor/hooks";
 import { componentDefinitions } from "@/features/editor/lib/mjml/schema";
 import type { MJMLComponentType } from "@/features/editor/types";
 import { Toolbar } from "./toolbar";
@@ -129,6 +129,7 @@ export const Editor = memo(function Editor() {
   const setSidebarOpen = useUIStore((s) => s.setSidebarOpen);
   const setPropertiesOpen = useUIStore((s) => s.setPropertiesOpen);
   const selectedNode = useSelectedNode();
+  const isMediumScreen = useIsMediumScreen();
 
   const [, setActiveId] = useState<string | null>(null);
   const [activeType, setActiveType] = useState<MJMLComponentType | null>(null);
@@ -385,25 +386,22 @@ export const Editor = memo(function Editor() {
 
           {/* Center Panel - Canvas / Edit / Code / Preview */}
           <div className="flex-1 min-w-0 overflow-hidden">
-            {editorMode === "code" && (
-              <ResizablePanelGroup direction="horizontal" className="hidden md:flex">
-                <ResizablePanel defaultSize={50} minSize={30}>
-                  <CodeEditor />
-                </ResizablePanel>
-                <ResizableHandle withHandle />
-                <ResizablePanel defaultSize={50} minSize={30}>
-                  <Preview />
-                </ResizablePanel>
-              </ResizablePanelGroup>
-            )}
-            {/* Mobile code mode - stacked layout */}
-            {editorMode === "code" && (
-              <div className="flex flex-col h-full md:hidden">
-                <div className="flex-1 min-h-0">
-                  <CodeEditor />
-                </div>
-              </div>
-            )}
+            {editorMode === "code" &&
+              (isMediumScreen ? (
+                // Tablet and above (≥768px): side by side code + preview
+                <ResizablePanelGroup direction="horizontal" className="h-full">
+                  <ResizablePanel defaultSize={50} minSize={30}>
+                    <CodeEditor />
+                  </ResizablePanel>
+                  <ResizableHandle withHandle />
+                  <ResizablePanel defaultSize={50} minSize={30}>
+                    <Preview />
+                  </ResizablePanel>
+                </ResizablePanelGroup>
+              ) : (
+                // Small screen (<768px): code editor only
+                <CodeEditor />
+              ))}
             {editorMode === "preview" && <Preview />}
             {editorMode === "edit" && <EditMode />}
             {editorMode === "canvas" && <Canvas />}
