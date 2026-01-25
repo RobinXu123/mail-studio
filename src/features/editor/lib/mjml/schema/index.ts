@@ -14,9 +14,11 @@ import { layoutComponents } from "./layout";
 import { contentComponents } from "./content";
 import { interactiveComponents } from "./interactive";
 import { socialComponents, predefinedSocialPlatforms, defaultSocialElements } from "./social";
+import { getCustomDefaults, customDefaults } from "./customDefaults";
 
-// Re-export social utilities
+// Re-export social utilities and custom defaults
 export { predefinedSocialPlatforms, defaultSocialElements };
+export { customDefaults, getCustomDefaults, getPropWithDefaults } from "./customDefaults";
 
 // Merge all component definitions
 export const componentDefinitions: Record<MJMLComponentType, ComponentDefinition> = {
@@ -58,10 +60,12 @@ export function generateId(): string {
 // Helper to create a node from a default child definition (for default children)
 function createNodeFromDefinition(def: DefaultChildNode): EditorNode {
   const componentDef = componentDefinitions[def.type];
+  const customDefs = getCustomDefaults(def.type);
   return {
     id: generateId(),
     type: def.type,
-    props: { ...componentDef?.defaultProps, ...def.props },
+    // Priority: def.props > customDefaults > componentDef.defaultProps
+    props: { ...componentDef?.defaultProps, ...customDefs, ...def.props },
     content: def.content ?? componentDef?.defaultContent,
     children: def.children
       ? def.children.map(createNodeFromDefinition)
@@ -74,6 +78,7 @@ function createNodeFromDefinition(def: DefaultChildNode): EditorNode {
 // Helper to create a new node with defaults, including default children
 export function createNode(type: MJMLComponentType, overrides?: Partial<EditorNode>): EditorNode {
   const def = componentDefinitions[type];
+  const customDefs = getCustomDefaults(type);
 
   // Create default children if defined
   let children: EditorNode[] | undefined;
@@ -88,10 +93,12 @@ export function createNode(type: MJMLComponentType, overrides?: Partial<EditorNo
   return {
     id: generateId(),
     type,
-    props: { ...def.defaultProps },
-    content: def.defaultContent,
-    children,
+    // Priority: overrides.props > customDefaults > def.defaultProps
+    props: { ...def.defaultProps, ...customDefs, ...overrides?.props },
+    content: overrides?.content ?? def.defaultContent,
+    children: overrides?.children ?? children,
     ...overrides,
+    // Ensure props are correctly merged (overrides might contain props that should be merged, not replaced)
   };
 }
 
