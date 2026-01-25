@@ -16,8 +16,11 @@
 
 import type { MJMLComponentType } from "@/features/editor/types";
 
+// Type for props values
+type PropValue = string | number | undefined;
+
 // Custom default values that override MJML defaults
-export const customDefaults: Partial<Record<MJMLComponentType, Record<string, unknown>>> = {
+export const customDefaults: Partial<Record<MJMLComponentType, Record<string, PropValue>>> = {
   // Example configurations (uncomment and modify as needed):
 
   // "mj-text": {
@@ -53,7 +56,7 @@ export const customDefaults: Partial<Record<MJMLComponentType, Record<string, un
 };
 
 // Helper to get custom defaults for a component type
-export function getCustomDefaults(type: MJMLComponentType): Record<string, unknown> {
+export function getCustomDefaults(type: MJMLComponentType): Record<string, PropValue> {
   return customDefaults[type] || {};
 }
 
@@ -61,8 +64,8 @@ export function getCustomDefaults(type: MJMLComponentType): Record<string, unkno
 // Custom defaults take precedence over MJML defaults
 export function mergeWithCustomDefaults(
   type: MJMLComponentType,
-  mjmlDefaults: Record<string, unknown>
-): Record<string, unknown> {
+  mjmlDefaults: Record<string, PropValue>
+): Record<string, PropValue> {
   return {
     ...mjmlDefaults,
     ...getCustomDefaults(type),
@@ -84,9 +87,9 @@ export function mergeWithCustomDefaults(
  * @example
  * const bgColor = getPropWithDefaults("mj-button", node.props, "background-color", "#414141");
  */
-export function getPropWithDefaults<T>(
+export function getPropWithDefaults<T extends PropValue>(
   type: MJMLComponentType,
-  props: Record<string, unknown>,
+  props: Record<string, PropValue>,
   propKey: string,
   mjmlDefault: T
 ): T {
