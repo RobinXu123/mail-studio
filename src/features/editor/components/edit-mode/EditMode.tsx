@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useEditorStore } from "@/features/editor/stores";
 import type { EditorNode, MJMLComponentType } from "@/features/editor/types";
 import { generateId } from "@/features/editor/lib/mjml";
@@ -35,7 +35,19 @@ export function EditMode() {
   const document = useEditorStore((s) => s.document);
   const addChildNode = useEditorStore((s) => s.addChildNode);
   const updateNodeChildren = useEditorStore((s) => s.updateNodeChildren);
+  const setSelectedId = useEditorStore((s) => s.setSelectedId);
   const [activeSectionId, setActiveSectionId] = useState<UniqueIdentifier | null>(null);
+
+  // Clear selection when clicking on empty area
+  const handleBackgroundClick = useCallback(
+    (e: React.MouseEvent) => {
+      // Only clear if clicking directly on the background (not on child elements)
+      if (e.target === e.currentTarget) {
+        setSelectedId(null);
+      }
+    },
+    [setSelectedId]
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -90,8 +102,8 @@ export function EditMode() {
   };
 
   return (
-    <div className="h-full bg-white overflow-auto">
-      <div className="max-w-[650px] mx-auto py-12 px-8">
+    <div className="h-full bg-white overflow-auto" onClick={handleBackgroundClick}>
+      <div className="max-w-[650px] mx-auto py-12 px-8" onClick={handleBackgroundClick}>
         {/* Email Header */}
         <EmailHeader />
 

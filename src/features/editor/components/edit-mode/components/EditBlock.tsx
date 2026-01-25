@@ -54,6 +54,7 @@ export function EditBlock({
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
+      e.stopPropagation(); // Prevent bubbling to parent containers
       const target = e.target as HTMLElement;
       if (!target.closest('[contenteditable="true"]')) {
         setSelectedId(node.id);

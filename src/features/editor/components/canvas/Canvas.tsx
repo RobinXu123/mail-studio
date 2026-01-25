@@ -4,7 +4,7 @@
 
 "use client";
 
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import { useEditorStore, useUIStore } from "@/features/editor/stores";
 import { cn } from "@/lib/utils";
 import { Breadcrumb } from "./Breadcrumb";
@@ -13,6 +13,18 @@ import { CanvasBody } from "./CanvasBody";
 export const Canvas = memo(function Canvas() {
   const document = useEditorStore((s) => s.document);
   const isDragging = useUIStore((s) => s.isDragging);
+  const setSelectedId = useEditorStore((s) => s.setSelectedId);
+
+  // Clear selection when clicking on empty canvas area
+  const handleCanvasClick = useCallback(
+    (e: React.MouseEvent) => {
+      // Only clear if clicking directly on the canvas background (not on child elements)
+      if (e.target === e.currentTarget) {
+        setSelectedId(null);
+      }
+    },
+    [setSelectedId]
+  );
 
   return (
     <div className="h-full bg-muted/50 flex flex-col">
@@ -20,8 +32,11 @@ export const Canvas = memo(function Canvas() {
       <Breadcrumb />
 
       {/* Canvas Area */}
-      <div className="flex-1 overflow-auto">
-        <div className="min-h-full flex items-start justify-center p-4 sm:p-6 lg:p-8 pb-20 lg:pb-8">
+      <div className="flex-1 overflow-auto" onClick={handleCanvasClick}>
+        <div
+          className="min-h-full flex items-start justify-center p-4 sm:p-6 lg:p-8 pb-20 lg:pb-8"
+          onClick={handleCanvasClick}
+        >
           <div
             className={cn(
               "bg-white shadow-lg rounded-lg transition-shadow duration-200 w-full max-w-[600px]",
