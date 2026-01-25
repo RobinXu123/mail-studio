@@ -27,14 +27,14 @@ export const Canvas = memo(function Canvas() {
   );
 
   return (
-    <div className="h-full bg-muted/50 flex flex-col">
-      {/* Breadcrumb */}
+    <div className="h-full bg-muted/50 flex flex-col relative">
+      {/* Breadcrumb - absolute positioned to avoid layout shifts */}
       <Breadcrumb />
 
       {/* Canvas Area */}
       <div className="flex-1 overflow-auto" onClick={handleCanvasClick}>
         <div
-          className="min-h-full flex items-start justify-center p-4 sm:p-6 lg:p-8 pb-20 lg:pb-8"
+          className="min-h-full flex items-start justify-center pt-12 px-4 sm:px-6 lg:px-8 pb-20 lg:pb-8"
           onClick={handleCanvasClick}
         >
           <div
