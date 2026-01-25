@@ -11,8 +11,15 @@ import type {
   HeadSettings,
   FontDefinition,
 } from "@/features/editor/types";
-import { emptyDocument, cloneDocumentWithNewIds } from "@/features/editor/lib/mjml/templates";
+import {
+  emptyDocument,
+  cloneDocumentWithNewIds,
+  templates,
+} from "@/features/editor/lib/mjml/templates";
 import { createNode, generateId, componentDefinitions } from "@/features/editor/lib/mjml/schema";
+
+// Get welcome template as default document
+const defaultDocument = templates.find((t) => t.id === "welcome")?.document ?? emptyDocument;
 
 // Default head settings
 const defaultHeadSettings: HeadSettings = {
@@ -188,8 +195,8 @@ function isNodeOrAncestorLocked(root: EditorNode, nodeId: string): boolean {
 export const useEditorStore = create<EditorStore>()(
   temporal(
     immer((set, get) => ({
-      // Initial state
-      document: cloneDocumentWithNewIds(emptyDocument),
+      // Initial state - use welcome template as default
+      document: cloneDocumentWithNewIds(defaultDocument),
       selectedId: null,
       hoveredId: null,
       headSettings: { ...defaultHeadSettings },
