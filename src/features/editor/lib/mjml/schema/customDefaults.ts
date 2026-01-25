@@ -23,9 +23,12 @@ export const customDefaults: Partial<Record<MJMLComponentType, Record<string, un
   // "mj-text": {
   // },
 
-  // "mj-button": {
-  //   "background-color": "#2563eb",
-  // },
+  "mj-button": {
+    "background-color": "#000000",
+    color: "#ffffff",
+    "font-weight": "500",
+    "border-radius": "50px",
+  },
 
   // "mj-section": {
   // },
@@ -33,8 +36,12 @@ export const customDefaults: Partial<Record<MJMLComponentType, Record<string, un
   // "mj-column": {
   // },
 
-  // "mj-divider": {
-  // },
+  "mj-divider": {
+    "border-color": "#e2e8f0",
+    "border-width": "1px",
+    "border-style": "solid",
+    width: "100%",
+  },
 
   "mj-spacer": {
     height: "30px",
