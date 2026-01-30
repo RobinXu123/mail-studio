@@ -7,6 +7,7 @@
 import { memo, useCallback } from "react";
 import { useEditorStore, useUIStore } from "@/features/editor/stores";
 import { cn } from "@/lib/utils";
+import { Github } from "lucide-react";
 import { Breadcrumb } from "./Breadcrumb";
 import { CanvasBody } from "./CanvasBody";
 
@@ -55,6 +56,17 @@ export const Canvas = memo(function Canvas() {
           Release to drop the component
         </div>
       )}
+
+      {/* GitHub link */}
+      <a
+        href="https://github.com/wzc520pyfm/mail-studio"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="absolute bottom-4 right-4 p-2 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted"
+        title="View on GitHub"
+      >
+        <Github className="w-5 h-5" />
+      </a>
     </div>
   );
 });
