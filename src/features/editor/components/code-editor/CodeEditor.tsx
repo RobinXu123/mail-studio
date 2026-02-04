@@ -11,12 +11,16 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
-import Editor, { OnMount, BeforeMount } from "@monaco-editor/react";
+import Editor, { loader, OnMount, BeforeMount } from "@monaco-editor/react";
 import { Loader2 } from "lucide-react";
+import * as monaco from "monaco-editor";
 
 import { useCodeSync, useLockedRegions } from "./hooks";
 import { CodeEditorToolbar, CodeEditorBanners } from "./components";
 import { initializeMonacoForMjml, defaultEditorOptions } from "./utils";
+
+// 配置 Monaco Editor 使用本地资源，避免请求 CDN
+loader.config({ monaco });
 
 export function CodeEditor() {
   // Code synchronization state and actions
